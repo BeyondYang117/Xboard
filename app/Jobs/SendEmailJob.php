@@ -15,7 +15,8 @@ class SendEmailJob implements ShouldQueue
     protected $params;
 
     public $tries = 3;
-    public $timeout = 10;
+    public $timeout = 50;
+    public $backoff = [10, 30];
     /**
      * Create a new job instance.
      *
@@ -35,8 +36,9 @@ class SendEmailJob implements ShouldQueue
     public function handle()
     {
         $mailLog = MailService::sendEmail($this->params);
-        if ($mailLog['error']) {
-            $this->release(); //发送失败将触发重试
+        if ($mailLog['error'] !== null) {
+            // Let the worker apply backoff and retain the delivery error on failure.
+            throw new \RuntimeException($mailLog['error']);
         }
     }
 }

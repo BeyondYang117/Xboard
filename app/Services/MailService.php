@@ -239,6 +239,7 @@ class MailService
      */
     public static function sendEmail(array $params)
     {
+        $previousConfig = config('mail');
         if (admin_setting('email_host')) {
             Config::set('mail.host', admin_setting('email_host', config('mail.host')));
             Config::set('mail.port', admin_setting('email_port', config('mail.port')));
@@ -247,6 +248,10 @@ class MailService
             Config::set('mail.password', admin_setting('email_password', config('mail.password')));
             Config::set('mail.from.address', admin_setting('email_from_address', config('mail.from.address')));
             Config::set('mail.from.name', admin_setting('app_name', 'XBoard'));
+        }
+        if (config('mail') !== $previousConfig) {
+            // Horizon caches mailers between jobs; rebuild after SMTP settings change.
+            Mail::purge();
         }
         $email = $params['email'];
         $subject = $params['subject'];
@@ -312,9 +317,13 @@ class MailService
             'subject' => $params['subject'],
             'template_name' => $params['template_name'],
             'error' => $error,
-            'config' => config('mail')
         ];
-        MailLog::create($log);
+        try {
+            MailLog::create($log);
+        } catch (\Exception $e) {
+            // A log storage failure must not resend a successfully delivered email.
+            Log::error('保存邮件发送日志失败', ['exception' => $e]);
+        }
         return $log;
     }
 

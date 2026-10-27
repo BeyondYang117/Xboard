@@ -46,7 +46,11 @@ class ConfigController extends Controller
             ]
         ]);
         return response([
-            'data' => $mailLog,
+            'data' => $mailLog + [
+                'config' => \Illuminate\Support\Arr::only(config('mail'), [
+                    'driver', 'host', 'port', 'encryption', 'username', 'from',
+                ]),
+            ],
         ]);
     }
     public function setTelegramWebhook(Request $request)

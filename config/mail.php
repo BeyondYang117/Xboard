@@ -44,6 +44,9 @@ return [
 
     'port' => env('MAIL_PORT', 587),
 
+    // Keep socket operations below the email job and Horizon worker timeouts.
+    'timeout' => (int) env('MAIL_TIMEOUT', 20),
+
     /*
     |--------------------------------------------------------------------------
     | Global "From" Address
