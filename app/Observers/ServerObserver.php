@@ -16,6 +16,10 @@ class ServerObserver
 
     public function updated(Server $server): void
     {
+        if ($server->is_external) {
+            return;
+        }
+
         if ($server->wasChanged('group_ids')) {
             NodeSyncService::notifyFullSync($server->id);
         } elseif ($server->wasChanged([

@@ -44,22 +44,18 @@ WORKDIR /www
 
 COPY .docker /
 
-ARG CACHEBUST=1
-ARG REPO_URL=https://github.com/BeyondYang117/Xboard.git
-ARG BRANCH_NAME=master
+# Build the checked-out revision, including local changes and CI version metadata.
+COPY . .
 
-RUN echo "Attempting to clone branch: ${BRANCH_NAME} from ${REPO_URL} with CACHEBUST: ${CACHEBUST}" && \
-    rm -rf ./* && \
-    rm -rf .git && \
-    git config --global --add safe.directory /www && \
-    git clone --depth 1 --branch ${BRANCH_NAME} ${REPO_URL} . && \
-    git submodule update --init --recursive --force
+RUN test -s public/assets/admin/manifest.json && \
+    mkdir -p bootstrap/cache storage/app/public storage/framework/cache/data \
+        storage/framework/sessions storage/framework/views storage/logs storage/theme storage/tmp
 
 COPY .docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY .docker/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY .docker/php/zz-xboard.ini /usr/local/etc/php/conf.d/zz-xboard.ini
 
-RUN composer install --no-cache --no-dev --no-security-blocking \
+RUN composer install --no-cache --no-dev --no-security-blocking --prefer-dist --no-interaction --optimize-autoloader \
     && php artisan storage:link \
     && chown -R www:www /www \
     && chmod -R 775 /www \

@@ -44,6 +44,7 @@ docker compose up -d
 
 ### Development Guides
 - [Plugin Development Guide](./docs/en/development/plugin-development-guide.md) - Complete guide for developing XBoard plugins
+- [外部机场订阅导入](./docs/zh/subscription-import.md) - 导入、更新和使用范围说明
 
 ### Deployment Guides
 

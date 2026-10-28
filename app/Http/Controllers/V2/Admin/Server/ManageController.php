@@ -58,6 +58,9 @@ class ManageController extends Controller
                 return $this->fail([400202, '服务器不存在']);
             }
             try {
+                if ($server->is_external) {
+                    $params = array_intersect_key($params, array_flip(['name', 'group_ids', 'show', 'tags', 'sort', 'rate']));
+                }
                 $server->update($params);
                 return $this->success(true);
             } catch (\Exception $e) {
@@ -87,6 +90,10 @@ class ManageController extends Controller
         $server = Server::find($request->id);
         if (!$server) {
             return $this->fail([400202, '服务器不存在']);
+        }
+
+        if ($server->is_external && (!empty($params['machine_id']) || !empty($params['enabled']))) {
+            return $this->fail([422, '外部订阅节点不能绑定机器或启用节点后端']);
         }
 
         if (array_key_exists('show', $params)) {
@@ -251,6 +258,9 @@ class ManageController extends Controller
 
         try {
             $servers = Server::whereIn('id', $ids)->get();
+            if ((!empty($update['machine_id']) || !empty($update['enabled'])) && $servers->contains(fn ($server) => $server->is_external)) {
+                return $this->fail([422, '外部订阅节点不能绑定机器或启用节点后端']);
+            }
             DB::transaction(function () use ($servers, $update) {
                 /** @var Server $server */
                 foreach ($servers as $server) {
@@ -279,6 +289,7 @@ class ManageController extends Controller
         $copiedServer = $server->replicate();
         $copiedServer->show = 0;
         $copiedServer->code = null;
+        $copiedServer->external_key = null;
         $copiedServer->u = 0;
         $copiedServer->d = 0;
         $copiedServer->save();

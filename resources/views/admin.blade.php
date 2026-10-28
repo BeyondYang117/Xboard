@@ -81,6 +81,8 @@
 
 <body>
   <div id="root"></div>
+  @include('admin.subscription-import')
+  <script defer src="/assets/subscription-import.js?v=1"></script>
 </body>
 
 </html>

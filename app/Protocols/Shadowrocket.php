@@ -284,6 +284,7 @@ class Shadowrocket extends AbstractProtocol
 
     public static function buildTrojan($password, $server)
     {
+        $password = rawurlencode($password);
         $protocol_settings = $server['protocol_settings'];
         $name = rawurlencode($server['name']);
         $params = [];
@@ -404,7 +405,9 @@ class Shadowrocket extends AbstractProtocol
                 $query = http_build_query($params);
                 $addr = Helper::wrapIPv6($server['host']);
 
-                $uri = "hysteria2://{$password}@{$addr}:{$server['port']}?{$query}#{$server['name']}";
+                $auth = rawurlencode($password);
+                $name = rawurlencode($server['name']);
+                $uri = "hysteria2://{$auth}@{$addr}:{$server['port']}?{$query}#{$name}";
                 $uri .= "\r\n";
                 break;
         }
@@ -435,6 +438,7 @@ class Shadowrocket extends AbstractProtocol
 
     public static function buildAnyTLS($password, $server)
     {
+        $password = rawurlencode($password);
         $protocol_settings = $server['protocol_settings'];
         $name = rawurlencode($server['name']);
         $params = [

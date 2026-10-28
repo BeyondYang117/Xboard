@@ -113,7 +113,9 @@ class Server extends Model
     protected $table = 'v2_server';
 
     protected $guarded = ['id'];
+    protected $hidden = ['external_password', 'external_source', 'external_key'];
     protected $casts = [
+        'external_password' => 'encrypted',
         'group_ids' => 'array',
         'route_ids' => 'array',
         'tags' => 'array',
@@ -372,6 +374,10 @@ class Server extends Model
 
     public function generateServerPassword(User $user): string
     {
+        if ($this->is_external) {
+            return (string) $this->external_password;
+        }
+
         if ($this->type !== self::TYPE_SHADOWSOCKS) {
             return $user->uuid;
         }
@@ -393,6 +399,11 @@ class Server extends Model
     public static function normalizeType(?string $type): string | null
     {
         return $type ? strtolower(self::TYPE_ALIASES[$type] ?? $type) : null;
+    }
+
+    public function getIsExternalAttribute(): bool
+    {
+        return $this->external_source !== null;
     }
     
     public static function isValidType(?string $type): bool

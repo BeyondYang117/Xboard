@@ -24,6 +24,7 @@ class ServerService
         $query = Server::orderBy('sort', 'ASC');
 
         return $query->get()->append([
+            'is_external',
             'last_check_at',
             'last_push_at',
             'online',
@@ -42,6 +43,7 @@ class ServerService
     public static function getMachineNodes(ServerMachine $machine): Collection
     {
         return Server::where('machine_id', $machine->id)
+            ->whereNull('external_source')
             ->where('enabled', true)
             ->orderBy('sort', 'ASC')
             ->get();
@@ -63,7 +65,7 @@ class ServerService
             })
             ->orderBy('sort', 'ASC')
             ->get()
-            ->append(['last_check_at', 'last_push_at', 'online', 'is_online', 'available_status', 'cache_key', 'server_key']);
+            ->append(['is_external', 'last_check_at', 'last_push_at', 'online', 'is_online', 'available_status', 'cache_key', 'server_key']);
 
         $servers = collect($servers)->map(function ($server) use ($user) {
             // 判断动态端口
@@ -405,6 +407,7 @@ class ServerService
     public static function getServer($serverId, ?string $serverType = null): Server | null
     {
         return Server::query()
+            ->whereNull('external_source')
             ->when($serverType, function ($query) use ($serverType) {
                 $query->where('type', Server::normalizeType($serverType));
             })

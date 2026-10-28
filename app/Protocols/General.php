@@ -246,6 +246,7 @@ class General extends AbstractProtocol
 
     public static function buildTrojan($password, $server)
     {
+        $password = rawurlencode($password);
         $protocol_settings = $server['protocol_settings'];
         $name = rawurlencode($server['name']);
         $array = [];
@@ -345,7 +346,8 @@ class General extends AbstractProtocol
             }
 
             $query = http_build_query($params);
-            $uri = "hysteria2://{$password}@{$addr}:{$server['port']}?{$query}#{$name}";
+            $auth = rawurlencode($password);
+            $uri = "hysteria2://{$auth}@{$addr}:{$server['port']}?{$query}#{$name}";
         } else {
             $params['protocol'] = 'udp';
             $params['auth'] = $password;
@@ -425,6 +427,7 @@ class General extends AbstractProtocol
 
     public static function buildAnyTLS($password, $server)
     {
+        $password = rawurlencode($password);
         $protocol_settings = $server['protocol_settings'];
         $name = rawurlencode($server['name']);
         $params = [

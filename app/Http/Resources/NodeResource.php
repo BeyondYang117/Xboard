@@ -22,6 +22,7 @@ class NodeResource extends JsonResource
             'rate' => $this['rate'],
             'tags' => $this['tags'],
             'is_online' => $this['is_online'],
+            'is_external' => $this['is_external'] ?? false,
             'cache_key' => $this['cache_key'],
             'last_check_at' => $this['last_check_at']
         ];
