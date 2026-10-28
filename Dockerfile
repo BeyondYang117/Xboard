@@ -1,3 +1,5 @@
+FROM ghcr.io/sagernet/sing-box:v1.14.4@sha256:0788ffbddab2c68a99a2dd4780bbc50902f159af6f589df3ee74a8389d278279 AS node-probe-core
+
 FROM phpswoole/swoole:php8.2-alpine AS runtime
 
 RUN php -r 'if (version_compare(PHP_VERSION, "8.2.35", "<")) { \
@@ -6,6 +8,8 @@ RUN php -r 'if (version_compare(PHP_VERSION, "8.2.35", "<")) { \
 
 COPY --from=mlocati/php-extension-installer:2.12.3 /usr/bin/install-php-extensions /usr/local/bin/
 COPY --from=composer:2.10.3 /usr/bin/composer /usr/local/bin/composer
+COPY --from=node-probe-core /usr/local/bin/sing-box /usr/local/bin/sing-box
+RUN /usr/local/bin/sing-box version
 
 # Install these extensions separately to preserve the ARM64 compiler workarounds.
 RUN CFLAGS="-O0" install-php-extensions pcntl && \

@@ -8,6 +8,8 @@ use App\Http\Controllers\V2\Admin\Server\GroupController;
 use App\Http\Controllers\V2\Admin\Server\RouteController;
 use App\Http\Controllers\V2\Admin\Server\ManageController;
 use App\Http\Controllers\V2\Admin\Server\SubscriptionController;
+use App\Http\Controllers\V2\Admin\Server\ClassificationController;
+use App\Http\Controllers\V2\Admin\Server\ProbeController;
 use App\Http\Controllers\V2\Admin\Server\MachineController;
 use App\Http\Controllers\V2\Admin\OrderController;
 use App\Http\Controllers\V2\Admin\UserController;
@@ -85,6 +87,10 @@ class AdminRoute
                 'prefix' => 'server/manage'
             ], function ($router) {
                 $router->get('/getNodes', [ManageController::class, 'getNodes']);
+                $router->get('/dimensions', [ClassificationController::class, 'dimensions']);
+                $router->post('/batchClassify', [ClassificationController::class, 'batchClassify']);
+                $router->post('/probeHistory', [ProbeController::class, 'history']);
+                $router->post('/probe', [ProbeController::class, 'run'])->middleware('throttle:120,1');
                 $router->post('/previewSubscription', [SubscriptionController::class, 'preview'])->middleware('throttle:10,1');
                 $router->post('/importSubscription', [SubscriptionController::class, 'import']);
                 $router->post('/update', [ManageController::class, 'update']);

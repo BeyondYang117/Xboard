@@ -58,6 +58,8 @@
     sort($locales);
   @endphp
 
+  <script src="/assets/node-filters.js?v=3"></script>
+
   @if($entry && count($scripts) > 0)
     @foreach($styles as $css)
       <link rel="stylesheet" crossorigin href="/assets/admin/{{ $css }}" />
@@ -82,6 +84,9 @@
 <body>
   <div id="root"></div>
   @include('admin.subscription-import')
+  @include('admin.node-filters')
+  @include('admin.node-probe')
+  <script defer src="/assets/node-probe.js?v=1"></script>
   <script defer src="/assets/subscription-import.js?v=1"></script>
 </body>
 

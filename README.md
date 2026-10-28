@@ -45,6 +45,8 @@ docker compose up -d
 ### Development Guides
 - [Plugin Development Guide](./docs/en/development/plugin-development-guide.md) - Complete guide for developing XBoard plugins
 - [外部机场订阅导入](./docs/zh/subscription-import.md) - 导入、更新和使用范围说明
+- [节点多维管理](./docs/zh/node-filters.md) - 协议、地区分组，组合筛选、批量分类与常用视图
+- [节点连通性测试](./docs/zh/node-probe.md) - TCP 端口与代理请求实测、批量测试与结果说明
 
 ### Deployment Guides
 

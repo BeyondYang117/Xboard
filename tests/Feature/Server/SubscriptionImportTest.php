@@ -167,6 +167,79 @@ class SubscriptionImportTest extends TestCase
         $this->postJson('/api/v2/server/report', ['token' => 'server-token', 'node_id' => $server->id])->assertStatus(400);
     }
 
+    public function test_admin_filters_imported_nodes_without_exposing_credentials(): void
+    {
+        $this->import($this->preview())->assertOk();
+        $url = action([ManageController::class, 'getNodes'], [], false);
+        $this->getJson($url . '?' . http_build_query(['node_filter' => ['source' => 'external', 'status' => 'external', 'online_max' => '0']]))
+            ->assertOk()->assertJsonCount(2, 'data');
+        $response = $this->getJson($url . '?' . http_build_query(['node_filter' => ['keyword' => 'node.example', 'show' => '1']]))
+            ->assertOk()->assertJsonCount(1, 'data');
+        $this->assertArrayNotHasKey('external_password', $response->json('data.0'));
+        $this->getJson($url . '?' . http_build_query(['node_filter' => ['status' => '0']]))
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson($url)->assertOk()->assertJsonCount(2, 'data');
+        $this->getJson($url . '?' . http_build_query(['node_filter' => ['port' => '70000']]))->assertStatus(422);
+    }
+
+    public function test_classification_is_admin_only_atomic_and_survives_reimport(): void
+    {
+        $this->import($this->preview())->assertOk();
+        $nodes = Server::orderBy('id')->get();
+        $url = action([\App\Http\Controllers\V2\Admin\Server\ClassificationController::class, 'batchClassify'], [], false);
+        $dimensions = action([\App\Http\Controllers\V2\Admin\Server\ClassificationController::class, 'dimensions'], [], false);
+        $id = $nodes[0]->id;
+        $this->postJson($url, ['ids' => [$id], 'region' => 'JP', 'management_group' => '亚洲专线', 'provider' => '测试机场', 'add_tags' => ['流媒体']])
+            ->assertOk()->assertJsonPath('data.updated', 1);
+        $node = Server::findOrFail($id);
+        $this->assertSame('JP', $node->region);
+        $this->assertSame('亚洲专线', $node->management_group);
+        $this->assertSame($nodes[0]->group_ids, $node->group_ids);
+        $this->assertNull($nodes[1]->fresh()->management_group);
+        $this->assertSame('upstream-secret', $node->external_password);
+        $response = $this->getJson($dimensions . '?' . http_build_query(['dimension' => 'protocol', 'node_filter' => ['region' => 'JP']]))
+            ->assertOk()->assertJsonPath('data.matched', 1)->assertJsonPath('data.nodes.0.region_origin', 'manual');
+        $this->assertStringNotContainsString('upstream-secret', $response->getContent());
+        $this->assertStringNotContainsString($node->external_source, $response->getContent());
+        $this->assertArrayNotHasKey('management_group', $node->toArray());
+        $this->postJson($url, ['ids' => [$id, 999999], 'provider' => 'Should not persist'])->assertStatus(422);
+        $this->assertSame('测试机场', $node->fresh()->provider);
+        $this->postJson($url, ['ids' => [$id], 'region' => 'INVALID'])->assertStatus(422);
+        $this->postJson($url, ['ids' => [$id]])->assertStatus(422);
+        $this->import($this->preview('rotated'))->assertOk();
+        $this->assertSame('JP', $node->fresh()->region);
+        $this->assertSame('亚洲专线', $node->fresh()->management_group);
+        $this->postJson($url, ['ids' => [$id], 'region' => null, 'management_group' => null, 'remove_tags' => ['流媒体'], 'add_tags' => ['专线']])->assertOk();
+        $this->assertNull($node->fresh()->region);
+        $this->assertSame(['外部订阅', '专线'], $node->fresh()->tags);
+        $user = $this->makeUser();
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', 'Bearer ' . $user->createToken('test')->plainTextToken);
+        $this->getJson($dimensions)->assertStatus(403);
+        $this->postJson($url, ['ids' => [$id], 'region' => 'US'])->assertStatus(403);
+    }
+
+    public function test_probe_api_checks_permissions_validation_and_caches_safe_results(): void
+    {
+        $this->import($this->preview())->assertOk();
+        $id = Server::firstOrFail()->id;
+        $url = action([\App\Http\Controllers\V2\Admin\Server\ProbeController::class, 'run'], [], false);
+        $history = action([\App\Http\Controllers\V2\Admin\Server\ProbeController::class, 'history'], [], false);
+        $probe = Mockery::mock(\App\Services\NodeProbe\NodeProbe::class);
+        $probe->shouldReceive('probe')->once()->andReturn(['node_id' => $id, 'mode' => 'proxy', 'target' => 'cloudflare', 'state' => 'ok', 'stage' => 'http', 'message' => '代理请求成功', 'latency_ms' => 128, 'tested_at' => time()]);
+        $this->app->instance(\App\Services\NodeProbe\NodeProbe::class, $probe);
+        $this->postJson($url, ['id' => $id, 'mode' => 'proxy', 'target' => 'cloudflare'])->assertOk()->assertJsonPath('data.state', 'ok');
+        $this->postJson($history, ['ids' => [$id]])->assertOk()->assertJsonPath("data.results.{$id}.proxy.latency_ms", 128);
+        $this->postJson($url, ['id' => $id, 'mode' => 'proxy', 'target' => 'http://127.0.0.1'])->assertUnprocessable();
+        $lock = Cache::lock("node-probe:running:{$id}", 25); $this->assertTrue($lock->get());
+        $this->postJson($url, ['id' => $id, 'mode' => 'tcp'])->assertStatus(429); $lock->release();
+        $this->assertTrue(Cache::lock("node-probe:slot:0", 25)->get());
+        $user = $this->makeUser(); $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', 'Bearer ' . $user->createToken('test')->plainTextToken);
+        $this->postJson($url, ['id' => $id, 'mode' => 'tcp'])->assertForbidden();
+        $this->postJson($history, ['ids' => [$id]])->assertForbidden();
+    }
+
     public function test_managed_nodes_still_use_platform_uuid(): void
     {
         $server = Server::create(['type' => 'trojan', 'name' => 'Managed', 'host' => 'managed.example', 'port' => '443',

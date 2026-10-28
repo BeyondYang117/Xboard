@@ -1,0 +1,998 @@
+{
+  "AD": {
+    "name": "安道尔",
+    "english": "Andorra"
+  },
+  "AE": {
+    "name": "阿拉伯联合酋长国",
+    "english": "United Arab Emirates"
+  },
+  "AF": {
+    "name": "阿富汗",
+    "english": "Afghanistan"
+  },
+  "AG": {
+    "name": "安提瓜和巴布达",
+    "english": "Antigua & Barbuda"
+  },
+  "AI": {
+    "name": "安圭拉",
+    "english": "Anguilla"
+  },
+  "AL": {
+    "name": "阿尔巴尼亚",
+    "english": "Albania"
+  },
+  "AM": {
+    "name": "亚美尼亚",
+    "english": "Armenia"
+  },
+  "AO": {
+    "name": "安哥拉",
+    "english": "Angola"
+  },
+  "AQ": {
+    "name": "南极洲",
+    "english": "Antarctica"
+  },
+  "AR": {
+    "name": "阿根廷",
+    "english": "Argentina"
+  },
+  "AS": {
+    "name": "美属萨摩亚",
+    "english": "American Samoa"
+  },
+  "AT": {
+    "name": "奥地利",
+    "english": "Austria"
+  },
+  "AU": {
+    "name": "澳大利亚",
+    "english": "Australia"
+  },
+  "AW": {
+    "name": "阿鲁巴",
+    "english": "Aruba"
+  },
+  "AX": {
+    "name": "奥兰群岛",
+    "english": "Åland Islands"
+  },
+  "AZ": {
+    "name": "阿塞拜疆",
+    "english": "Azerbaijan"
+  },
+  "BA": {
+    "name": "波斯尼亚和黑塞哥维那",
+    "english": "Bosnia & Herzegovina"
+  },
+  "BB": {
+    "name": "巴巴多斯",
+    "english": "Barbados"
+  },
+  "BD": {
+    "name": "孟加拉国",
+    "english": "Bangladesh"
+  },
+  "BE": {
+    "name": "比利时",
+    "english": "Belgium"
+  },
+  "BF": {
+    "name": "布基纳法索",
+    "english": "Burkina Faso"
+  },
+  "BG": {
+    "name": "保加利亚",
+    "english": "Bulgaria"
+  },
+  "BH": {
+    "name": "巴林",
+    "english": "Bahrain"
+  },
+  "BI": {
+    "name": "布隆迪",
+    "english": "Burundi"
+  },
+  "BJ": {
+    "name": "贝宁",
+    "english": "Benin"
+  },
+  "BL": {
+    "name": "圣巴泰勒米",
+    "english": "St. Barthélemy"
+  },
+  "BM": {
+    "name": "百慕大",
+    "english": "Bermuda"
+  },
+  "BN": {
+    "name": "文莱",
+    "english": "Brunei"
+  },
+  "BO": {
+    "name": "玻利维亚",
+    "english": "Bolivia"
+  },
+  "BQ": {
+    "name": "荷属加勒比区",
+    "english": "Caribbean Netherlands"
+  },
+  "BR": {
+    "name": "巴西",
+    "english": "Brazil"
+  },
+  "BS": {
+    "name": "巴哈马",
+    "english": "Bahamas"
+  },
+  "BT": {
+    "name": "不丹",
+    "english": "Bhutan"
+  },
+  "BV": {
+    "name": "布韦岛",
+    "english": "Bouvet Island"
+  },
+  "BW": {
+    "name": "博茨瓦纳",
+    "english": "Botswana"
+  },
+  "BY": {
+    "name": "白俄罗斯",
+    "english": "Belarus"
+  },
+  "BZ": {
+    "name": "伯利兹",
+    "english": "Belize"
+  },
+  "CA": {
+    "name": "加拿大",
+    "english": "Canada"
+  },
+  "CC": {
+    "name": "科科斯（基林）群岛",
+    "english": "Cocos (Keeling) Islands"
+  },
+  "CD": {
+    "name": "刚果（金）",
+    "english": "Congo - Kinshasa"
+  },
+  "CF": {
+    "name": "中非共和国",
+    "english": "Central African Republic"
+  },
+  "CG": {
+    "name": "刚果（布）",
+    "english": "Congo - Brazzaville"
+  },
+  "CH": {
+    "name": "瑞士",
+    "english": "Switzerland"
+  },
+  "CI": {
+    "name": "科特迪瓦",
+    "english": "Côte d’Ivoire"
+  },
+  "CK": {
+    "name": "库克群岛",
+    "english": "Cook Islands"
+  },
+  "CL": {
+    "name": "智利",
+    "english": "Chile"
+  },
+  "CM": {
+    "name": "喀麦隆",
+    "english": "Cameroon"
+  },
+  "CN": {
+    "name": "中国",
+    "english": "China"
+  },
+  "CO": {
+    "name": "哥伦比亚",
+    "english": "Colombia"
+  },
+  "CR": {
+    "name": "哥斯达黎加",
+    "english": "Costa Rica"
+  },
+  "CU": {
+    "name": "古巴",
+    "english": "Cuba"
+  },
+  "CV": {
+    "name": "佛得角",
+    "english": "Cape Verde"
+  },
+  "CW": {
+    "name": "库拉索",
+    "english": "Curaçao"
+  },
+  "CX": {
+    "name": "圣诞岛",
+    "english": "Christmas Island"
+  },
+  "CY": {
+    "name": "塞浦路斯",
+    "english": "Cyprus"
+  },
+  "CZ": {
+    "name": "捷克",
+    "english": "Czechia"
+  },
+  "DE": {
+    "name": "德国",
+    "english": "Germany"
+  },
+  "DJ": {
+    "name": "吉布提",
+    "english": "Djibouti"
+  },
+  "DK": {
+    "name": "丹麦",
+    "english": "Denmark"
+  },
+  "DM": {
+    "name": "多米尼克",
+    "english": "Dominica"
+  },
+  "DO": {
+    "name": "多米尼加共和国",
+    "english": "Dominican Republic"
+  },
+  "DZ": {
+    "name": "阿尔及利亚",
+    "english": "Algeria"
+  },
+  "EC": {
+    "name": "厄瓜多尔",
+    "english": "Ecuador"
+  },
+  "EE": {
+    "name": "爱沙尼亚",
+    "english": "Estonia"
+  },
+  "EG": {
+    "name": "埃及",
+    "english": "Egypt"
+  },
+  "EH": {
+    "name": "西撒哈拉",
+    "english": "Western Sahara"
+  },
+  "ER": {
+    "name": "厄立特里亚",
+    "english": "Eritrea"
+  },
+  "ES": {
+    "name": "西班牙",
+    "english": "Spain"
+  },
+  "ET": {
+    "name": "埃塞俄比亚",
+    "english": "Ethiopia"
+  },
+  "FI": {
+    "name": "芬兰",
+    "english": "Finland"
+  },
+  "FJ": {
+    "name": "斐济",
+    "english": "Fiji"
+  },
+  "FK": {
+    "name": "福克兰群岛",
+    "english": "Falkland Islands"
+  },
+  "FM": {
+    "name": "密克罗尼西亚",
+    "english": "Micronesia"
+  },
+  "FO": {
+    "name": "法罗群岛",
+    "english": "Faroe Islands"
+  },
+  "FR": {
+    "name": "法国",
+    "english": "France"
+  },
+  "GA": {
+    "name": "加蓬",
+    "english": "Gabon"
+  },
+  "GB": {
+    "name": "英国",
+    "english": "United Kingdom"
+  },
+  "GD": {
+    "name": "格林纳达",
+    "english": "Grenada"
+  },
+  "GE": {
+    "name": "格鲁吉亚",
+    "english": "Georgia"
+  },
+  "GF": {
+    "name": "法属圭亚那",
+    "english": "French Guiana"
+  },
+  "GG": {
+    "name": "根西岛",
+    "english": "Guernsey"
+  },
+  "GH": {
+    "name": "加纳",
+    "english": "Ghana"
+  },
+  "GI": {
+    "name": "直布罗陀",
+    "english": "Gibraltar"
+  },
+  "GL": {
+    "name": "格陵兰",
+    "english": "Greenland"
+  },
+  "GM": {
+    "name": "冈比亚",
+    "english": "Gambia"
+  },
+  "GN": {
+    "name": "几内亚",
+    "english": "Guinea"
+  },
+  "GP": {
+    "name": "瓜德罗普",
+    "english": "Guadeloupe"
+  },
+  "GQ": {
+    "name": "赤道几内亚",
+    "english": "Equatorial Guinea"
+  },
+  "GR": {
+    "name": "希腊",
+    "english": "Greece"
+  },
+  "GS": {
+    "name": "南乔治亚和南桑威奇群岛",
+    "english": "South Georgia & South Sandwich Islands"
+  },
+  "GT": {
+    "name": "危地马拉",
+    "english": "Guatemala"
+  },
+  "GU": {
+    "name": "关岛",
+    "english": "Guam"
+  },
+  "GW": {
+    "name": "几内亚比绍",
+    "english": "Guinea-Bissau"
+  },
+  "GY": {
+    "name": "圭亚那",
+    "english": "Guyana"
+  },
+  "HK": {
+    "name": "中国香港特别行政区",
+    "english": "Hong Kong SAR China"
+  },
+  "HM": {
+    "name": "赫德岛和麦克唐纳群岛",
+    "english": "Heard & McDonald Islands"
+  },
+  "HN": {
+    "name": "洪都拉斯",
+    "english": "Honduras"
+  },
+  "HR": {
+    "name": "克罗地亚",
+    "english": "Croatia"
+  },
+  "HT": {
+    "name": "海地",
+    "english": "Haiti"
+  },
+  "HU": {
+    "name": "匈牙利",
+    "english": "Hungary"
+  },
+  "ID": {
+    "name": "印度尼西亚",
+    "english": "Indonesia"
+  },
+  "IE": {
+    "name": "爱尔兰",
+    "english": "Ireland"
+  },
+  "IL": {
+    "name": "以色列",
+    "english": "Israel"
+  },
+  "IM": {
+    "name": "马恩岛",
+    "english": "Isle of Man"
+  },
+  "IN": {
+    "name": "印度",
+    "english": "India"
+  },
+  "IO": {
+    "name": "英属印度洋领地",
+    "english": "British Indian Ocean Territory"
+  },
+  "IQ": {
+    "name": "伊拉克",
+    "english": "Iraq"
+  },
+  "IR": {
+    "name": "伊朗",
+    "english": "Iran"
+  },
+  "IS": {
+    "name": "冰岛",
+    "english": "Iceland"
+  },
+  "IT": {
+    "name": "意大利",
+    "english": "Italy"
+  },
+  "JE": {
+    "name": "泽西岛",
+    "english": "Jersey"
+  },
+  "JM": {
+    "name": "牙买加",
+    "english": "Jamaica"
+  },
+  "JO": {
+    "name": "约旦",
+    "english": "Jordan"
+  },
+  "JP": {
+    "name": "日本",
+    "english": "Japan"
+  },
+  "KE": {
+    "name": "肯尼亚",
+    "english": "Kenya"
+  },
+  "KG": {
+    "name": "吉尔吉斯斯坦",
+    "english": "Kyrgyzstan"
+  },
+  "KH": {
+    "name": "柬埔寨",
+    "english": "Cambodia"
+  },
+  "KI": {
+    "name": "基里巴斯",
+    "english": "Kiribati"
+  },
+  "KM": {
+    "name": "科摩罗",
+    "english": "Comoros"
+  },
+  "KN": {
+    "name": "圣基茨和尼维斯",
+    "english": "St. Kitts & Nevis"
+  },
+  "KP": {
+    "name": "朝鲜",
+    "english": "North Korea"
+  },
+  "KR": {
+    "name": "韩国",
+    "english": "South Korea"
+  },
+  "KW": {
+    "name": "科威特",
+    "english": "Kuwait"
+  },
+  "KY": {
+    "name": "开曼群岛",
+    "english": "Cayman Islands"
+  },
+  "KZ": {
+    "name": "哈萨克斯坦",
+    "english": "Kazakhstan"
+  },
+  "LA": {
+    "name": "老挝",
+    "english": "Laos"
+  },
+  "LB": {
+    "name": "黎巴嫩",
+    "english": "Lebanon"
+  },
+  "LC": {
+    "name": "圣卢西亚",
+    "english": "St. Lucia"
+  },
+  "LI": {
+    "name": "列支敦士登",
+    "english": "Liechtenstein"
+  },
+  "LK": {
+    "name": "斯里兰卡",
+    "english": "Sri Lanka"
+  },
+  "LR": {
+    "name": "利比里亚",
+    "english": "Liberia"
+  },
+  "LS": {
+    "name": "莱索托",
+    "english": "Lesotho"
+  },
+  "LT": {
+    "name": "立陶宛",
+    "english": "Lithuania"
+  },
+  "LU": {
+    "name": "卢森堡",
+    "english": "Luxembourg"
+  },
+  "LV": {
+    "name": "拉脱维亚",
+    "english": "Latvia"
+  },
+  "LY": {
+    "name": "利比亚",
+    "english": "Libya"
+  },
+  "MA": {
+    "name": "摩洛哥",
+    "english": "Morocco"
+  },
+  "MC": {
+    "name": "摩纳哥",
+    "english": "Monaco"
+  },
+  "MD": {
+    "name": "摩尔多瓦",
+    "english": "Moldova"
+  },
+  "ME": {
+    "name": "黑山",
+    "english": "Montenegro"
+  },
+  "MF": {
+    "name": "法属圣马丁",
+    "english": "St. Martin"
+  },
+  "MG": {
+    "name": "马达加斯加",
+    "english": "Madagascar"
+  },
+  "MH": {
+    "name": "马绍尔群岛",
+    "english": "Marshall Islands"
+  },
+  "MK": {
+    "name": "北马其顿",
+    "english": "North Macedonia"
+  },
+  "ML": {
+    "name": "马里",
+    "english": "Mali"
+  },
+  "MM": {
+    "name": "缅甸",
+    "english": "Myanmar (Burma)"
+  },
+  "MN": {
+    "name": "蒙古",
+    "english": "Mongolia"
+  },
+  "MO": {
+    "name": "中国澳门特别行政区",
+    "english": "Macao SAR China"
+  },
+  "MP": {
+    "name": "北马里亚纳群岛",
+    "english": "Northern Mariana Islands"
+  },
+  "MQ": {
+    "name": "马提尼克",
+    "english": "Martinique"
+  },
+  "MR": {
+    "name": "毛里塔尼亚",
+    "english": "Mauritania"
+  },
+  "MS": {
+    "name": "蒙特塞拉特",
+    "english": "Montserrat"
+  },
+  "MT": {
+    "name": "马耳他",
+    "english": "Malta"
+  },
+  "MU": {
+    "name": "毛里求斯",
+    "english": "Mauritius"
+  },
+  "MV": {
+    "name": "马尔代夫",
+    "english": "Maldives"
+  },
+  "MW": {
+    "name": "马拉维",
+    "english": "Malawi"
+  },
+  "MX": {
+    "name": "墨西哥",
+    "english": "Mexico"
+  },
+  "MY": {
+    "name": "马来西亚",
+    "english": "Malaysia"
+  },
+  "MZ": {
+    "name": "莫桑比克",
+    "english": "Mozambique"
+  },
+  "NA": {
+    "name": "纳米比亚",
+    "english": "Namibia"
+  },
+  "NC": {
+    "name": "新喀里多尼亚",
+    "english": "New Caledonia"
+  },
+  "NE": {
+    "name": "尼日尔",
+    "english": "Niger"
+  },
+  "NF": {
+    "name": "诺福克岛",
+    "english": "Norfolk Island"
+  },
+  "NG": {
+    "name": "尼日利亚",
+    "english": "Nigeria"
+  },
+  "NI": {
+    "name": "尼加拉瓜",
+    "english": "Nicaragua"
+  },
+  "NL": {
+    "name": "荷兰",
+    "english": "Netherlands"
+  },
+  "NO": {
+    "name": "挪威",
+    "english": "Norway"
+  },
+  "NP": {
+    "name": "尼泊尔",
+    "english": "Nepal"
+  },
+  "NR": {
+    "name": "瑙鲁",
+    "english": "Nauru"
+  },
+  "NU": {
+    "name": "纽埃",
+    "english": "Niue"
+  },
+  "NZ": {
+    "name": "新西兰",
+    "english": "New Zealand"
+  },
+  "OM": {
+    "name": "阿曼",
+    "english": "Oman"
+  },
+  "PA": {
+    "name": "巴拿马",
+    "english": "Panama"
+  },
+  "PE": {
+    "name": "秘鲁",
+    "english": "Peru"
+  },
+  "PF": {
+    "name": "法属波利尼西亚",
+    "english": "French Polynesia"
+  },
+  "PG": {
+    "name": "巴布亚新几内亚",
+    "english": "Papua New Guinea"
+  },
+  "PH": {
+    "name": "菲律宾",
+    "english": "Philippines"
+  },
+  "PK": {
+    "name": "巴基斯坦",
+    "english": "Pakistan"
+  },
+  "PL": {
+    "name": "波兰",
+    "english": "Poland"
+  },
+  "PM": {
+    "name": "圣皮埃尔和密克隆群岛",
+    "english": "St. Pierre & Miquelon"
+  },
+  "PN": {
+    "name": "皮特凯恩群岛",
+    "english": "Pitcairn Islands"
+  },
+  "PR": {
+    "name": "波多黎各",
+    "english": "Puerto Rico"
+  },
+  "PS": {
+    "name": "巴勒斯坦领土",
+    "english": "Palestinian Territories"
+  },
+  "PT": {
+    "name": "葡萄牙",
+    "english": "Portugal"
+  },
+  "PW": {
+    "name": "帕劳",
+    "english": "Palau"
+  },
+  "PY": {
+    "name": "巴拉圭",
+    "english": "Paraguay"
+  },
+  "QA": {
+    "name": "卡塔尔",
+    "english": "Qatar"
+  },
+  "RE": {
+    "name": "留尼汪",
+    "english": "Réunion"
+  },
+  "RO": {
+    "name": "罗马尼亚",
+    "english": "Romania"
+  },
+  "RS": {
+    "name": "塞尔维亚",
+    "english": "Serbia"
+  },
+  "RU": {
+    "name": "俄罗斯",
+    "english": "Russia"
+  },
+  "RW": {
+    "name": "卢旺达",
+    "english": "Rwanda"
+  },
+  "SA": {
+    "name": "沙特阿拉伯",
+    "english": "Saudi Arabia"
+  },
+  "SB": {
+    "name": "所罗门群岛",
+    "english": "Solomon Islands"
+  },
+  "SC": {
+    "name": "塞舌尔",
+    "english": "Seychelles"
+  },
+  "SD": {
+    "name": "苏丹",
+    "english": "Sudan"
+  },
+  "SE": {
+    "name": "瑞典",
+    "english": "Sweden"
+  },
+  "SG": {
+    "name": "新加坡",
+    "english": "Singapore"
+  },
+  "SH": {
+    "name": "圣赫勒拿",
+    "english": "St. Helena"
+  },
+  "SI": {
+    "name": "斯洛文尼亚",
+    "english": "Slovenia"
+  },
+  "SJ": {
+    "name": "斯瓦尔巴和扬马延",
+    "english": "Svalbard & Jan Mayen"
+  },
+  "SK": {
+    "name": "斯洛伐克",
+    "english": "Slovakia"
+  },
+  "SL": {
+    "name": "塞拉利昂",
+    "english": "Sierra Leone"
+  },
+  "SM": {
+    "name": "圣马力诺",
+    "english": "San Marino"
+  },
+  "SN": {
+    "name": "塞内加尔",
+    "english": "Senegal"
+  },
+  "SO": {
+    "name": "索马里",
+    "english": "Somalia"
+  },
+  "SR": {
+    "name": "苏里南",
+    "english": "Suriname"
+  },
+  "SS": {
+    "name": "南苏丹",
+    "english": "South Sudan"
+  },
+  "ST": {
+    "name": "圣多美和普林西比",
+    "english": "São Tomé & Príncipe"
+  },
+  "SV": {
+    "name": "萨尔瓦多",
+    "english": "El Salvador"
+  },
+  "SX": {
+    "name": "荷属圣马丁",
+    "english": "Sint Maarten"
+  },
+  "SY": {
+    "name": "叙利亚",
+    "english": "Syria"
+  },
+  "SZ": {
+    "name": "斯威士兰",
+    "english": "Eswatini"
+  },
+  "TC": {
+    "name": "特克斯和凯科斯群岛",
+    "english": "Turks & Caicos Islands"
+  },
+  "TD": {
+    "name": "乍得",
+    "english": "Chad"
+  },
+  "TF": {
+    "name": "法属南部领地",
+    "english": "French Southern Territories"
+  },
+  "TG": {
+    "name": "多哥",
+    "english": "Togo"
+  },
+  "TH": {
+    "name": "泰国",
+    "english": "Thailand"
+  },
+  "TJ": {
+    "name": "塔吉克斯坦",
+    "english": "Tajikistan"
+  },
+  "TK": {
+    "name": "托克劳",
+    "english": "Tokelau"
+  },
+  "TL": {
+    "name": "东帝汶",
+    "english": "Timor-Leste"
+  },
+  "TM": {
+    "name": "土库曼斯坦",
+    "english": "Turkmenistan"
+  },
+  "TN": {
+    "name": "突尼斯",
+    "english": "Tunisia"
+  },
+  "TO": {
+    "name": "汤加",
+    "english": "Tonga"
+  },
+  "TR": {
+    "name": "土耳其",
+    "english": "Türkiye"
+  },
+  "TT": {
+    "name": "特立尼达和多巴哥",
+    "english": "Trinidad & Tobago"
+  },
+  "TV": {
+    "name": "图瓦卢",
+    "english": "Tuvalu"
+  },
+  "TW": {
+    "name": "台湾",
+    "english": "Taiwan"
+  },
+  "TZ": {
+    "name": "坦桑尼亚",
+    "english": "Tanzania"
+  },
+  "UA": {
+    "name": "乌克兰",
+    "english": "Ukraine"
+  },
+  "UG": {
+    "name": "乌干达",
+    "english": "Uganda"
+  },
+  "UM": {
+    "name": "美国本土外小岛屿",
+    "english": "U.S. Outlying Islands"
+  },
+  "US": {
+    "name": "美国",
+    "english": "United States"
+  },
+  "UY": {
+    "name": "乌拉圭",
+    "english": "Uruguay"
+  },
+  "UZ": {
+    "name": "乌兹别克斯坦",
+    "english": "Uzbekistan"
+  },
+  "VA": {
+    "name": "梵蒂冈",
+    "english": "Vatican City"
+  },
+  "VC": {
+    "name": "圣文森特和格林纳丁斯",
+    "english": "St. Vincent & Grenadines"
+  },
+  "VE": {
+    "name": "委内瑞拉",
+    "english": "Venezuela"
+  },
+  "VG": {
+    "name": "英属维尔京群岛",
+    "english": "British Virgin Islands"
+  },
+  "VI": {
+    "name": "美属维尔京群岛",
+    "english": "U.S. Virgin Islands"
+  },
+  "VN": {
+    "name": "越南",
+    "english": "Vietnam"
+  },
+  "VU": {
+    "name": "瓦努阿图",
+    "english": "Vanuatu"
+  },
+  "WF": {
+    "name": "瓦利斯和富图纳",
+    "english": "Wallis & Futuna"
+  },
+  "WS": {
+    "name": "萨摩亚",
+    "english": "Samoa"
+  },
+  "YE": {
+    "name": "也门",
+    "english": "Yemen"
+  },
+  "YT": {
+    "name": "马约特",
+    "english": "Mayotte"
+  },
+  "ZA": {
+    "name": "南非",
+    "english": "South Africa"
+  },
+  "ZM": {
+    "name": "赞比亚",
+    "english": "Zambia"
+  },
+  "ZW": {
+    "name": "津巴布韦",
+    "english": "Zimbabwe"
+  }
+}

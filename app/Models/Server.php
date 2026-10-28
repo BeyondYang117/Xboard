@@ -113,7 +113,7 @@ class Server extends Model
     protected $table = 'v2_server';
 
     protected $guarded = ['id'];
-    protected $hidden = ['external_password', 'external_source', 'external_key'];
+    protected $hidden = ['external_password', 'external_source', 'external_key', 'region', 'management_group', 'provider'];
     protected $casts = [
         'external_password' => 'encrypted',
         'group_ids' => 'array',
