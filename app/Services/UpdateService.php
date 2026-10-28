@@ -24,7 +24,7 @@ class UpdateService
      */
     public function getCurrentVersion(): string
     {
-        $date = Cache::get(self::CACHE_VERSION_DATE) ?? date('Ymd');
+        $date = Cache::get(self::CACHE_VERSION_DATE) ?? $this->getBuildDate();
         $hash = Cache::rememberForever(self::CACHE_VERSION, function () {
             return $this->getCurrentCommit();
         });
@@ -50,7 +50,7 @@ class UpdateService
         }
 
         // Fallback
-        Cache::forever(self::CACHE_VERSION_DATE, date('Ymd'));
+        Cache::forever(self::CACHE_VERSION_DATE, $this->getBuildDate());
         $fallbackHash = $this->getCurrentCommit();
         Cache::forever(self::CACHE_VERSION, $fallbackHash);
         Log::info('Version cache updated (fallback): ' . date('Ymd') . '-' . $fallbackHash);
@@ -261,11 +261,22 @@ class UpdateService
             Process::run(sprintf('git config --global --add safe.directory %s', base_path()));
             $result = Process::run('git rev-parse HEAD');
             $fullHash = trim($result->output());
-            return $fullHash ? $this->formatCommitHash($fullHash) : 'unknown';
+            if ($result->successful() && $fullHash !== '') {
+                return $this->formatCommitHash($fullHash);
+            }
         } catch (\Exception $e) {
             Log::error('Failed to get current commit: ' . $e->getMessage());
-            return 'unknown';
         }
+
+        // Container images carry build metadata instead of a Git checkout.
+        return preg_match('/^\d{8}-([0-9a-f]{7,40})$/i', (string) config('app.version'), $matches)
+            ? $this->formatCommitHash($matches[1]) : 'unknown';
+    }
+
+    private function getBuildDate(): string
+    {
+        return preg_match('/^(\d{8})-[0-9a-f]{7,40}$/i', (string) config('app.version'), $matches)
+            ? $matches[1] : date('Ymd');
     }
 
     protected function getFirstCommit(): string
