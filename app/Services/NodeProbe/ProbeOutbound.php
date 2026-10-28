@@ -33,7 +33,10 @@ class ProbeOutbound extends SingBox
                 throw new \UnexpectedValueException('测试用户已停用、到期、额度不足或不属于节点权限组');
             }
         }
-        $password = $node->is_external ? $node->external_password : $node->generateServerPassword($user);
+        // Resolve source from persisted attributes instead of the appended accessor. Probe
+        // callers may pass a model that has not had computed attributes appended.
+        $isExternal = $node->external_source !== null;
+        $password = $isExternal ? $node->external_password : $node->generateServerPassword($user);
         if (!$password) throw new \UnexpectedValueException('节点缺少可用的认证信息');
         // Keep the original hostname for SNI/Host defaults, then pin the dial IP.
         $data = $node->toArray();

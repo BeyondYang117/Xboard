@@ -80,6 +80,23 @@ class NodeProbeTest extends TestCase
         $this->assertNull($result['latency_ms']);
     }
 
+    public function test_local_node_builds_probe_from_panel_settings_and_user_credentials(): void
+    {
+        $node = $this->node([
+            'type' => 'vless', 'external_source' => null, 'external_password' => null,
+            'protocol_settings' => ['tls' => 1, 'tls_settings' => ['server_name' => 'origin.example'], 'network' => 'ws'],
+        ]);
+        $user = new User(); $user->forceFill(['uuid' => 'panel-user-uuid', 'group_id' => 2, 'transfer_enable' => 10000, 'u' => 0, 'd' => 0, 'banned' => false]);
+
+        $outbound = (new ProbeOutbound())->build($node, $user, '8.8.8.8', 443);
+
+        $this->assertSame('vless', $outbound['type']);
+        $this->assertSame('8.8.8.8', $outbound['server']);
+        $this->assertSame('panel-user-uuid', $outbound['uuid']);
+        $this->assertSame('origin.example', $outbound['tls']['server_name']);
+        $this->assertSame('ws', $outbound['transport']['type']);
+    }
+
     public function test_proxy_failure_is_not_replaced_with_tcp_success_or_direct_fallback(): void
     {
         $endpoint = Mockery::mock(PublicEndpoint::class); $endpoint->shouldReceive('addresses')->once()->with('node.example')->andReturn(['8.8.8.8']);
