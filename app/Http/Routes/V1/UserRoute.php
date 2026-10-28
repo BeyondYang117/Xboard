@@ -32,6 +32,7 @@ class UserRoute
             $router->get('/getSubscribe', [UserController::class, 'getSubscribe']);
             $router->get('/getStat', [UserController::class, 'getStat']);
             $router->get('/checkLogin', [UserController::class, 'checkLogin']);
+            $router->post('/logout', [UserController::class, 'logout']);
             $router->post('/transfer', [UserController::class, 'transfer']);
             $router->post('/getQuickLoginUrl', [UserController::class, 'getQuickLoginUrl']);
             $router->get('/getActiveSession', [UserController::class, 'getActiveSession']);

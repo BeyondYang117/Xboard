@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\V1\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanResource;
 use App\Http\Requests\User\UserChangePassword;
 use App\Http\Requests\User\UserTransfer;
 use App\Http\Requests\User\UserUpdate;
@@ -53,6 +54,12 @@ class UserController extends Controller
             $data['is_admin'] = true;
         }
         return $this->success($data);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()?->delete();
+        return $this->success(true);
     }
 
     public function changePassword(UserChangePassword $request)
@@ -149,10 +156,13 @@ class UserController extends Controller
             return $this->fail([400, __('The user does not exist')]);
         }
         if ($user->plan_id) {
-            $user['plan'] = Plan::find($user->plan_id);
-            if (!$user['plan']) {
+            $plan = Plan::find($user->plan_id);
+            if (!$plan) {
                 return $this->fail([400, __('Subscription plan does not exist')]);
             }
+            // Preserve the subscription plan's raw prices while sharing the catalog's template rendering.
+            $plan->content = PlanResource::make($plan)->formatContent();
+            $user['plan'] = $plan;
         }
         $user['subscribe_url'] = Helper::getSubscribeUrl($user['token']);
         $userService = new UserService();

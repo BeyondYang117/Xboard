@@ -16,6 +16,7 @@ class StatController extends Controller
         $startDate = now()->startOfMonth()->timestamp;
         $records = StatUser::query()
             ->where('user_id', $request->user()->id)
+            ->where('record_type', 'd')
             ->where('record_at', '>=', $startDate)
             ->orderBy('record_at', 'DESC')
             ->get();

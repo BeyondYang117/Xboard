@@ -43,7 +43,7 @@ class PlanResource extends JsonResource
     /**
      * Get transformed period prices using Plan mapping
      *
-     * @return array<string, float|null>
+     * @return array<string, int|null>
      */
     protected function getPeriodPrices(): array
     {
@@ -52,7 +52,7 @@ class PlanResource extends JsonResource
                 $price = $this->resource['prices'][$newPeriod] ?? null;
                 return [
                     $legacyPeriod => $price !== null
-                        ? (float) $price * self::PRICE_MULTIPLIER
+                        ? (int) round((float) $price * self::PRICE_MULTIPLIER)
                         : null
                 ];
             })
@@ -69,8 +69,8 @@ class PlanResource extends JsonResource
         $limit = $this->resource['capacity_limit'];
 
         return match (true) {
-            $limit === null => null,
-            $limit <= 0 => __('Sold out'),
+            $limit === null || (int) $limit === 0 => null,
+            $limit < 0 => __('Sold out'),
             default => (int) $limit,
         };
     }
@@ -80,7 +80,7 @@ class PlanResource extends JsonResource
      *
      * @return string
      */
-    protected function formatContent(): string
+    public function formatContent(): string
     {
         $content = $this->resource['content'] ?? '';
         
@@ -110,7 +110,7 @@ class PlanResource extends JsonResource
         if ($method === Plan::RESET_TRAFFIC_FOLLOW_SYSTEM) {
             $method = admin_setting('reset_traffic_method', Plan::RESET_TRAFFIC_MONTHLY);
         }
-        return match ($method) {
+        return match ((int) ($method ?? Plan::RESET_TRAFFIC_MONTHLY)) {
             Plan::RESET_TRAFFIC_FIRST_DAY_MONTH => __('First Day of Month'),
             Plan::RESET_TRAFFIC_MONTHLY => __('Monthly'),
             Plan::RESET_TRAFFIC_NEVER => __('Never'),

@@ -164,7 +164,8 @@ class PlanService
 
     public function hasCapacity(Plan $plan): bool
     {
-        if ($plan->capacity_limit === null) {
+        // The schema defaults to 0 and defines it as unlimited capacity.
+        if ($plan->capacity_limit === null || (int) $plan->capacity_limit === 0) {
             return true;
         }
 

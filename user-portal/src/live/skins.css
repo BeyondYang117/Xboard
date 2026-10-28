@@ -1,0 +1,542 @@
+:root[data-accent="blue"] {
+    --brand: #526eb2;
+    --brand-hover: #3f5590;
+    --tint: #eaf0fc;
+    --hero: #edf1fc;
+}
+:root[data-accent="violet"] {
+    --brand: #7760a8;
+    --brand-hover: #5f498b;
+    --tint: #f0ebf8;
+    --hero: #f1edf8;
+}
+:root[data-accent="rose"] {
+    --brand: #ad607e;
+    --brand-hover: #914866;
+    --tint: #f9ebf1;
+    --hero: #f9eef3;
+}
+:root[data-theme="dark"][data-accent="blue"] {
+    --brand: #a4baf0;
+    --brand-hover: #c0cff7;
+    --tint: #29364f;
+    --hero: #26334b;
+}
+:root[data-theme="dark"][data-accent="violet"] {
+    --brand: #c7afea;
+    --brand-hover: #dfc9ff;
+    --tint: #382d49;
+    --hero: #32293f;
+}
+:root[data-theme="dark"][data-accent="rose"] {
+    --brand: #e8afc4;
+    --brand-hover: #f7cddd;
+    --tint: #4c2e3c;
+    --hero: #412d36;
+}
+
+/* 星旅: original cel-shaded scenery, airy blue surfaces and star-map details. */
+:root[data-skin="anime"] {
+    --bg: #f4f6fc;
+    --surface: #fff;
+    --text: #303e61;
+    --muted: #687495;
+    --line: #e0e6f3;
+    --brand: #5b70b8;
+    --brand-hover: #465b9e;
+    --tint: #ebeffc;
+    --hero: #f0f3fd;
+    --shadow: 0 5px 22px #5266aa05;
+}
+:root[data-skin="anime"][data-theme="dark"] {
+    --bg: #171e32;
+    --surface: #202941;
+    --text: #e5e9f8;
+    --muted: #a7b2d0;
+    --line: #35415f;
+    --brand: #b3c2fb;
+    --brand-hover: #d0d9ff;
+    --tint: #303e64;
+    --hero: #283452;
+    --shadow: none;
+}
+[data-skin="anime"] body {
+    background-image: radial-gradient(#879bdb12 0.7px, transparent 0.7px);
+    background-size: 23px 23px;
+}
+[data-skin="anime"] .sidebar {
+    background: linear-gradient(180deg, var(--surface) 65%, var(--hero));
+}
+[data-skin="anime"] .brand-symbol {
+    gap: 3px;
+    transform: rotate(25deg);
+    border: 1px solid var(--brand);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    justify-content: center;
+}
+[data-skin="anime"] .brand-symbol span {
+    width: 3px;
+    height: 17px;
+    border-radius: 3px;
+}
+[data-skin="anime"] .brand-symbol span:first-child,
+[data-skin="anime"] .brand-symbol span:last-child {
+    height: 8px;
+}
+[data-skin="anime"] .brand-symbol::after {
+    content: "✦";
+    position: absolute;
+    right: -5px;
+    top: -7px;
+    font-size: 13px;
+    background: var(--surface);
+    line-height: 1;
+    color: var(--brand);
+    transform: rotate(-25deg);
+}
+[data-skin="anime"] .nav-item.active {
+    box-shadow: inset 3px 0 var(--brand);
+}
+[data-skin="anime"] .subscription-hero {
+    min-height: 288px;
+    background-color: var(--hero);
+    border-radius: 16px;
+    border-color: var(--line);
+    isolation: isolate;
+}
+[data-skin="anime"] .subscription-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("../assets/star-voyage.svg");
+    background-size: cover;
+    background-position: center 52%;
+    z-index: -1;
+}
+[data-skin="anime"] .subscription-hero::after {
+    content: "✦";
+    position: absolute;
+    right: 31px;
+    top: 25px;
+    color: #fff;
+    font-size: 25px;
+    opacity: 0.8;
+    z-index: -1;
+}
+[data-skin="anime"] .hero-art,
+[data-skin="anime"] .hero-scene {
+    display: none;
+}
+[data-skin="anime"] .hero-content {
+    width: 68%;
+    padding: 33px 36px;
+}
+[data-skin="anime"] .hero-content h2 {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #35446e;
+}
+[data-skin="anime"] .hero-content > p,
+[data-skin="anime"] .hero-footnote {
+    color: #596b91;
+}
+[data-skin="anime"] .hero-secondary,
+[data-skin="anime"] .hero-kicker {
+    color: #455c9e;
+}
+[data-skin="anime"] .hero-content .button-brand {
+    background: #5b70b8;
+    border-color: #5b70b8;
+    color: #fff;
+}
+[data-skin="anime"] .metric-card,
+[data-skin="anime"] .panel,
+[data-skin="anime"] .plan-card {
+    border-radius: 12px;
+}
+[data-skin="anime"] .metric-icon {
+    background: var(--tint);
+    color: var(--brand);
+}
+[data-skin="anime"] .usage-track span,
+[data-skin="anime"] .bar {
+    background: #a0b0df;
+}
+[data-skin="anime"] .bar.highlighted,
+[data-skin="anime"] .bar:hover {
+    background: var(--brand);
+}
+[data-skin="anime"] .usage-track .warning {
+    background: var(--warning);
+}
+[data-skin="anime"] .sidebar-guide {
+    border-radius: 13px;
+    background: linear-gradient(135deg, var(--tint), var(--surface));
+    border-style: dashed;
+}
+[data-skin="anime"] .sidebar-guide::after {
+    content: "✧";
+    position: absolute;
+    right: 16px;
+    top: 20px;
+    font-size: 26px;
+    color: var(--brand);
+    opacity: 0.3;
+}
+[data-skin="anime"] .eyebrow {
+    letter-spacing: 2.1px;
+    color: #697cae;
+}
+[data-skin="anime"][data-theme="dark"] .eyebrow {
+    color: #adbae0;
+}
+[data-skin="anime"] .avatar {
+    background: #e9edfa;
+    border-color: #d8dff4;
+    color: #5d6ea3;
+}
+[data-skin="anime"] .auth-art {
+    background: var(--hero);
+    isolation: isolate;
+}
+[data-skin="anime"] .auth-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("../assets/star-voyage.svg") 66% center/cover;
+    z-index: -1;
+}
+[data-skin="anime"] .auth-art .brand,
+[data-skin="anime"] .auth-story h1 {
+    color: #35446e;
+}
+[data-skin="anime"] .auth-story > p,
+[data-skin="anime"] .auth-story > span {
+    color: #53658c;
+}
+[data-skin="anime"] .auth-art-orbit {
+    display: none;
+}
+[data-skin="anime"] .auth-story {
+    padding-top: 30px;
+    padding-bottom: 230px;
+}
+[data-skin="anime"] .auth-story .eyebrow {
+    color: #53658c;
+}
+
+/* 夜航: an original manor, ink-green stationery and understated brass rules. */
+:root[data-skin="gothic"] {
+    --bg: #eae7de;
+    --surface: #f7f4ea;
+    --text: #35413e;
+    --muted: #6e7668;
+    --line: #d6d2c2;
+    --brand: #687854;
+    --brand-hover: #4f5e3d;
+    --tint: #e7e9dc;
+    --hero: #283239;
+    --shadow: 0 3px 15px #3f3d2506;
+}
+:root[data-skin="gothic"][data-theme="dark"] {
+    --bg: #171f22;
+    --surface: #222d30;
+    --text: #e4ddc9;
+    --muted: #b1b4a2;
+    --line: #3f4a46;
+    --brand: #cfbd8c;
+    --brand-hover: #e5d3a2;
+    --tint: #3b4236;
+    --hero: #283239;
+    --shadow: none;
+    --warn-bg: #3e3728;
+}
+[data-skin="gothic"] body {
+    background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        #5e5b3903 3px,
+        #5e5b3903 4px
+    );
+}
+[data-skin="gothic"] h1,
+[data-skin="gothic"] h2,
+[data-skin="gothic"] .brand {
+    font-family: "Songti SC", "Noto Serif SC", "SimSun", Georgia, serif;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+[data-skin="gothic"] .brand-symbol {
+    transform: none;
+    border: 1px solid #a69260;
+    border-radius: 2px;
+    justify-content: center;
+    gap: 3px;
+    width: 27px;
+    height: 31px;
+}
+[data-skin="gothic"] .brand-symbol span {
+    width: 2px;
+    height: 16px;
+    background: #a69260;
+}
+[data-skin="gothic"] .brand-symbol span:first-child,
+[data-skin="gothic"] .brand-symbol span:last-child {
+    height: 9px;
+}
+[data-skin="gothic"] .brand-dot {
+    color: #a69260;
+}
+[data-skin="gothic"] .sidebar {
+    border-right: 1px solid #a08c5854;
+    background-image: linear-gradient(
+        90deg,
+        transparent calc(100% - 6px),
+        #a08c581c calc(100% - 6px),
+        #a08c581c calc(100% - 5px),
+        transparent calc(100% - 5px)
+    );
+}
+[data-skin="gothic"] .topbar {
+    border-bottom: 1px solid #a08c5840;
+}
+[data-skin="gothic"] .nav-item,
+[data-skin="gothic"] .button,
+[data-skin="gothic"] .tabs,
+[data-skin="gothic"] .form-input {
+    border-radius: 3px;
+}
+[data-skin="gothic"] .nav-item.active {
+    box-shadow: inset 2px 0 #a99463;
+}
+[data-skin="gothic"] .subscription-hero {
+    background: var(--hero);
+    border-radius: 4px;
+    border-color: #9f8b5e;
+    isolation: isolate;
+    min-height: 288px;
+}
+[data-skin="gothic"] .subscription-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("../assets/nocturne-manor.svg") center 43% / cover;
+    z-index: -1;
+}
+[data-skin="gothic"] .hero-art,
+[data-skin="gothic"] .hero-scene {
+    display: none;
+}
+[data-skin="gothic"] .hero-content {
+    padding: 33px 36px;
+    width: 68%;
+}
+[data-skin="gothic"] .hero-content h2 {
+    color: #eee5cb;
+    font-size: 30px;
+    letter-spacing: 0.1em;
+}
+[data-skin="gothic"] .hero-content > p,
+[data-skin="gothic"] .hero-footnote {
+    color: #bcc4b5;
+}
+[data-skin="gothic"] .hero-kicker,
+[data-skin="gothic"] .hero-secondary {
+    color: #d4c293;
+}
+[data-skin="gothic"] .hero-content .button-brand {
+    background: #c8b785;
+    border-color: #c8b785;
+    color: #283137;
+}
+[data-skin="gothic"] .metric-card,
+[data-skin="gothic"] .panel,
+[data-skin="gothic"] .plan-card {
+    border-radius: 4px;
+}
+[data-skin="gothic"] .metric-card {
+    border-top: 2px solid #b5a47b;
+}
+[data-skin="gothic"] .metric-icon,
+[data-skin="gothic"] .quick-icon {
+    border-radius: 4px;
+}
+[data-skin="gothic"] .sidebar-guide {
+    border: 1px solid #b5a47b80;
+    border-radius: 3px;
+    background: var(--surface);
+    outline: 1px solid #b5a47b30;
+    outline-offset: -5px;
+}
+[data-skin="gothic"] .sidebar-guide h3 {
+    font-family: "Songti SC", serif;
+    font-size: 16px;
+}
+[data-skin="gothic"] .guide-orbit {
+    border-radius: 0;
+    transform: rotate(45deg);
+    opacity: 0.3;
+}
+[data-skin="gothic"] .pill {
+    border-color: #a692604d;
+}
+[data-skin="gothic"] .eyebrow {
+    letter-spacing: 2.8px;
+    color: var(--muted);
+}
+[data-skin="gothic"] .avatar {
+    background: #e7e3d5;
+    border-color: #d3cbb6;
+    color: #746849;
+}
+[data-skin="gothic"] .auth-art {
+    isolation: isolate;
+    background: #283239;
+}
+[data-skin="gothic"] .auth-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("../assets/nocturne-manor.svg") 64% center/cover;
+    z-index: -1;
+}
+[data-skin="gothic"] .auth-art .brand,
+[data-skin="gothic"] .auth-story h1 {
+    color: #e5dbc1;
+}
+[data-skin="gothic"] .auth-story > p,
+[data-skin="gothic"] .auth-story > span,
+[data-skin="gothic"] .auth-story .eyebrow {
+    color: #bfcaaf;
+}
+[data-skin="gothic"] .auth-story {
+    padding-bottom: 200px;
+}
+[data-skin="gothic"] .auth-art-orbit {
+    display: none;
+}
+.skin-picker {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--muted);
+    font-size: 11px;
+}
+.skin-picker select {
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 6px 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 11px;
+    max-width: 116px;
+}
+.custom-cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+    opacity: 0.5;
+    mask-image: linear-gradient(90deg, transparent 20%, #000 100%);
+    pointer-events: none;
+}
+.auth-art > .custom-cover {
+    mask-image: linear-gradient(180deg, transparent 0%, #000 90%);
+    opacity: 0.55;
+}
+@media (max-width: 1020px) {
+    [data-skin="anime"] .hero-content,
+    [data-skin="gothic"] .hero-content {
+        width: 78%;
+        padding: 28px;
+    }
+    [data-skin="anime"] .auth-story,
+    [data-skin="gothic"] .auth-story {
+        padding-bottom: 180px;
+    }
+}
+@media (max-width: 760px) {
+    [data-skin="anime"] .subscription-hero,
+    [data-skin="gothic"] .subscription-hero {
+        min-height: 300px;
+    }
+    [data-skin="anime"] .subscription-hero::before {
+        background-position: 64% center;
+        opacity: 0.8;
+    }
+    [data-skin="gothic"] .subscription-hero::before {
+        background-position: 66% center;
+        opacity: 0.9;
+    }
+    [data-skin="anime"] .hero-content,
+    [data-skin="gothic"] .hero-content {
+        width: 100%;
+        padding: 26px 23px;
+    }
+    [data-skin="anime"] .hero-content h2,
+    [data-skin="gothic"] .hero-content h2 {
+        font-size: 27px;
+        max-width: 250px;
+    }
+    [data-skin="anime"] .hero-content > p,
+    [data-skin="gothic"] .hero-content > p {
+        max-width: 200px;
+    }
+    [data-skin="anime"] .hero-content {
+        background: linear-gradient(
+            90deg,
+            #f0f3fdcf 0%,
+            #f0f3fd80 60%,
+            transparent 100%
+        );
+    }
+    [data-skin="gothic"] .hero-content {
+        background: linear-gradient(90deg, #242e32c9, transparent);
+    }
+    [data-skin="anime"] .auth-story,
+    [data-skin="gothic"] .auth-story {
+        padding: 22px 0 0;
+    }
+    [data-skin="anime"] .auth-art::before {
+        background-position: 75% 48%;
+    }
+    [data-skin="gothic"] .auth-art::before {
+        background-position: 70% 38%;
+    }
+    .skin-picker {
+        font-size: 0;
+    }
+    .skin-picker select {
+        max-width: 85px;
+        padding: 6px;
+        font-size: 10px;
+    }
+    .topbar-actions:has(.skin-picker) {
+        gap: 7px;
+    }
+    .topbar-actions:has(.skin-picker) .preview-label {
+        display: none;
+    }
+    .topbar-actions:has(.skin-picker) .avatar-small {
+        display: none;
+    }
+    .topbar-actions:has(.skin-picker) .icon-button {
+        width: 32px;
+    }
+    .topbar-actions:has(.skin-picker) .preview-selector select {
+        max-width: 63px;
+    }
+    .custom-cover {
+        opacity: 0.35;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .spin {
+        animation: none;
+    }
+}

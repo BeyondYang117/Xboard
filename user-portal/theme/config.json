@@ -1,0 +1,91 @@
+{
+    "name": "XboardPortal",
+    "description": "星旅 · Xboard 用户主题，支持日系轻幻想、哥特悬疑与简洁外观",
+    "version": "0.2.6",
+    "images": "",
+    "configs": [
+        {
+            "label": "视觉风格",
+            "field_name": "visual_style",
+            "field_type": "select",
+            "select_options": {
+                "anime": "星旅 · 日系轻幻想",
+                "gothic": "夜航 · 哥特悬疑",
+                "quiet": "简洁原版"
+            },
+            "default_value": "anime"
+        },
+        {
+            "label": "默认明暗外观",
+            "field_name": "appearance",
+            "field_type": "select",
+            "select_options": {
+                "light": "浅色",
+                "dark": "深色",
+                "system": "跟随系统"
+            },
+            "default_value": "light"
+        },
+        {
+            "label": "品牌色（简洁风格）",
+            "field_name": "accent",
+            "field_type": "select",
+            "select_options": {
+                "green": "青绿",
+                "blue": "星空蓝",
+                "violet": "紫罗兰",
+                "rose": "樱花粉"
+            },
+            "default_value": "blue"
+        },
+        {
+            "label": "主题标语",
+            "field_name": "tagline",
+            "field_type": "input",
+            "placeholder": "显示在登录页与页脚",
+            "default_value": "把日常，连成星光。"
+        },
+        {
+            "label": "封面插画 URL（选填）",
+            "field_name": "cover_image",
+            "field_type": "input",
+            "placeholder": "HTTPS 图片地址，留空使用内置插画",
+            "default_value": ""
+        },
+        {
+            "label": "外部支持链接（选填）",
+            "field_name": "support_url",
+            "field_type": "input",
+            "placeholder": "HTTPS 链接，留空使用站内帮助中心",
+            "default_value": ""
+        },
+        {
+            "label": "Windows 客户端下载链接",
+            "field_name": "client_windows_url",
+            "field_type": "input",
+            "placeholder": "留空使用官方发布页",
+            "default_value": ""
+        },
+        {
+            "label": "macOS 客户端下载链接",
+            "field_name": "client_macos_url",
+            "field_type": "input",
+            "placeholder": "留空使用官方发布页",
+            "default_value": ""
+        },
+        {
+            "label": "iOS 客户端下载链接",
+            "field_name": "client_ios_url",
+            "field_type": "input",
+            "placeholder": "留空使用 App Store 页面",
+            "default_value": ""
+        },
+        {
+            "label": "Android 客户端下载链接",
+            "field_name": "client_android_url",
+            "field_type": "input",
+            "placeholder": "留空使用官方发布页",
+            "default_value": ""
+        }
+    ]
+}

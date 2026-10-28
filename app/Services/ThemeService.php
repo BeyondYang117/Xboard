@@ -202,16 +202,17 @@ class ThemeService
                 throw new Exception('Theme view file not found');
             }
 
-            if ($currentTheme && $currentTheme !== $theme) {
-                $this->cleanupThemeFiles($currentTheme);
-            }
-
             $targetPath = public_path('theme/' . $theme);
             if (!File::copyDirectory($themePath, $targetPath)) {
                 throw new Exception('Failed to copy theme files');
             }
 
-            admin_setting(['current_theme' => $theme]);
+            // The frontend route reads frontend_theme; both values must change together.
+            admin_setting(['current_theme' => $theme, 'frontend_theme' => $theme]);
+
+            if ($currentTheme && $currentTheme !== $theme) {
+                $this->cleanupThemeFiles($currentTheme);
+            }
             return true;
 
         } catch (Exception $e) {
