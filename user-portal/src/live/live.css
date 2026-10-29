@@ -767,6 +767,19 @@
         min-width: 0;
     }
 }
+.linuxdo-account-row {
+    align-items: flex-start;
+}
+.linuxdo-account-details {
+    min-width: 0;
+}
+.settings-row.linuxdo-account-row p {
+    max-width: none;
+    overflow-wrap: anywhere;
+}
+.linuxdo-account-row > span {
+    flex-shrink: 0;
+}
 .auth-divider {
     display: flex;
     align-items: center;

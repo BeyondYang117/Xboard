@@ -110,6 +110,8 @@ class UserController extends Controller
                 'discount',
                 'commission_rate',
                 'telegram_id',
+                'linuxdo_id',
+                'linuxdo_username',
                 'uuid'
             ])
             ->first();

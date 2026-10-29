@@ -16,7 +16,7 @@ declare global {
         __XBOARD_PORTAL__?: Partial<PortalConfig>;
     }
 }
-export const portalBuildVersion = "0.2.7";
+export const portalBuildVersion = "0.2.8";
 export const portalConfig: PortalConfig = {
     title: "Xboard",
     description: "连接更多可能",

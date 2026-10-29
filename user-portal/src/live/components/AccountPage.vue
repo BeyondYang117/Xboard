@@ -55,6 +55,30 @@ async function toggle(key: "remind_expire" | "remind_traffic") {
                 <p>{{ user.email }}</p>
             </div>
         </div>
+        <div class="settings-row linuxdo-account-row">
+            <div class="linuxdo-account-details">
+                <h3>Linux DO</h3>
+                <template v-if="user.linuxdo_id">
+                    <p class="linuxdo-account-name">
+                        {{
+                            user.linuxdo_username
+                                ? `@${user.linuxdo_username}`
+                                : "用户名暂未同步"
+                        }}
+                    </p>
+                    <p>用户 ID：{{ user.linuxdo_id }}</p>
+                </template>
+                <p v-else-if="user.linuxdo_id === null">
+                    尚未绑定。可退出后使用 Linux DO
+                    登录，验证本站邮箱和密码完成绑定。
+                </p>
+                <p v-else>更新服务端后可查看绑定状态。</p>
+            </div>
+            <span v-if="user.linuxdo_id" class="pill">已绑定</span>
+            <span v-else class="muted-tag">{{
+                user.linuxdo_id === null ? "未绑定" : "暂不可用"
+            }}</span>
+        </div>
         <div class="settings-row">
             <div>
                 <h3>账户余额</h3>

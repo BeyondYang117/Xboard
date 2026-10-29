@@ -10,7 +10,7 @@
             'title' => $title,
             'description' => ($theme_config['tagline'] ?? '') ?: $description,
             'logo' => $logo,
-            'version' => '0.2.7',
+            'version' => '0.2.8',
             'appearance' => $theme_config['appearance'] ?? 'light',
             'accent' => $theme_config['accent'] ?? 'blue',
             'visualStyle' => $theme_config['visual_style'] ?? 'anime',

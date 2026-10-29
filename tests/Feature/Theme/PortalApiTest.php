@@ -41,6 +41,40 @@ class PortalApiTest extends TestCase
         ]);
     }
 
+    public function test_user_info_exposes_only_the_current_users_linuxdo_binding_when_login_is_disabled(): void
+    {
+        config()->set('services.linuxdo.enabled', false);
+        $user = $this->user();
+        $user->update(['linuxdo_id' => '9007199254740993', 'linuxdo_username' => 'traveler']);
+        User::create([
+            'email' => 'other@example.com', 'password' => password_hash('other-password', PASSWORD_DEFAULT),
+            'uuid' => 'other-uuid', 'token' => 'other-subscription-token',
+            'linuxdo_id' => '456', 'linuxdo_username' => 'other-community-user',
+        ]);
+        $token = $user->createToken('account');
+        $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+            ->getJson('/api/v1/user/info')->assertOk()
+            ->assertJsonPath('data.email', $user->email)
+            ->assertJsonPath('data.linuxdo_id', '9007199254740993')
+            ->assertJsonPath('data.linuxdo_username', 'traveler')
+            ->assertJsonMissingPath('data.password')
+            ->assertDontSee('other-community-user');
+    }
+
+    public function test_user_info_returns_null_for_an_unbound_linuxdo_account(): void
+    {
+        $token = $this->user()->createToken('account');
+        $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+            ->getJson('/api/v1/user/info')->assertOk()
+            ->assertJsonPath('data.linuxdo_id', null)
+            ->assertJsonPath('data.linuxdo_username', null);
+    }
+
+    public function test_user_info_requires_authentication(): void
+    {
+        $this->getJson('/api/v1/user/info')->assertForbidden();
+    }
+
     public function test_logout_revokes_only_the_current_session(): void
     {
         $user = $this->user();

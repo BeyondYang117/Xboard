@@ -31,6 +31,8 @@ export interface Plan {
 }
 export interface UserInfo {
     email: string;
+    linuxdo_id?: string | null;
+    linuxdo_username?: string | null;
     balance: number;
     banned: number | boolean;
     remind_expire: number;
