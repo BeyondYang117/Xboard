@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\File;
 */
 
 
+Route::get('/auth/linuxdo/callback', [\App\Http\Controllers\V1\Passport\LinuxDoController::class, 'callback'])
+    ->middleware('throttle:30,1');
+
 Route::get('/', function (Request $request) {
     if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)) {
         $requestHost = $request->getHost();

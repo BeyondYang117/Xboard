@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ArrowRight, Eye, EyeOff, ShieldCheck, Sun, Moon } from "@lucide/vue";
 import { api, setAuthToken } from "../api";
+import { clearLinuxDo, linuxDoPending, startLinuxDo } from "../linuxdo";
 import { httpUrl } from "../format";
 import { portalBuildVersion, portalConfig } from "../config";
 import type { GuestConfig } from "../types";
@@ -33,6 +34,21 @@ const needsCode = computed(
 );
 const tosUrl = computed(() => httpUrl(config.value?.tos_url));
 const cover = computed(() => httpUrl(portalConfig.coverImage));
+const allowRegistration = computed(
+    () => portalConfig.allowRegistration && config.value?.is_register !== false,
+);
+async function loginWithLinuxDo() {
+    if (busy.value) return;
+    busy.value = true;
+    error.value = "";
+    try {
+        await startLinuxDo();
+    } catch (cause) {
+        error.value = (cause as Error).message;
+    } finally {
+        busy.value = false;
+    }
+}
 async function loadConfig() {
     configLoading.value = true;
     configError.value = "";
@@ -90,24 +106,34 @@ async function submit() {
         }
         if (mode.value === "register" && tosUrl.value && !accepted.value)
             throw new Error("请阅读并同意服务条款。");
-        const data =
-            mode.value === "login"
-                ? await api.login({
-                      email: email.value.trim(),
-                      password: password.value,
-                  })
-                : await api.register({
-                      email: email.value.trim(),
-                      password: password.value,
+        const body = {
+            email: email.value.trim(),
+            password: password.value,
+            ...(mode.value === "register"
+                ? {
                       email_code: emailCode.value,
                       invite_code: inviteCode.value,
                       ...(config.value?.is_captcha
                           ? await captcha.value!.getPayload()
                           : {}),
-                  });
+                  }
+                : {}),
+        };
+        const pending = linuxDoPending.value;
+        const data = pending
+            ? await api.linuxDoComplete({
+                  ...body,
+                  ticket: pending.ticket,
+                  verifier: pending.verifier,
+                  action: mode.value,
+              })
+            : mode.value === "login"
+              ? await api.login(body)
+              : await api.register(body);
         if (!data.auth_data)
             throw new Error("登录响应缺少凭证，请联系管理员。");
         password.value = "";
+        clearLinuxDo();
         setAuthToken(data.auth_data);
     } catch (cause) {
         error.value = (cause as Error).message;
@@ -180,6 +206,36 @@ onBeforeUnmount(() => clearInterval(timer));
                     @retry="loadConfig"
                 />
                 <form v-if="config" @submit.prevent="submit">
+                    <div
+                        v-if="linuxDoPending"
+                        class="linuxdo-pending"
+                        role="status"
+                    >
+                        <strong
+                            >已授权 Linux DO ·
+                            {{ linuxDoPending.username }}</strong
+                        >
+                        <p>
+                            {{
+                                mode === "register"
+                                    ? "填写邮箱并创建本站账户，完成后即可使用 Linux DO 登录。"
+                                    : "使用本站邮箱和密码绑定已有账户；还没有账户可选择创建新账户。"
+                            }}
+                        </p>
+                        <button
+                            type="button"
+                            class="text-button"
+                            :disabled="busy"
+                            @click="
+                                clearLinuxDo();
+                                mode = 'login';
+                                error = '';
+                                success = '';
+                            "
+                        >
+                            取消绑定
+                        </button>
+                    </div>
                     <label for="auth-email" class="form-label">邮箱地址</label
                     ><input
                         id="auth-email"
@@ -295,9 +351,13 @@ onBeforeUnmount(() => clearInterval(timer));
                             busy
                                 ? "正在处理…"
                                 : mode === "login"
-                                  ? "登录账户"
+                                  ? linuxDoPending
+                                      ? "绑定已有账户并登录"
+                                      : "登录账户"
                                   : mode === "register"
-                                    ? "创建账户"
+                                    ? linuxDoPending
+                                        ? "创建并绑定账户"
+                                        : "创建账户"
                                     : "更新密码"
                         }}<ArrowRight :size="17" />
                     </button>
@@ -314,10 +374,7 @@ onBeforeUnmount(() => clearInterval(timer));
                         >
                             返回登录</button
                         ><button
-                            v-if="
-                                mode === 'login' &&
-                                portalConfig.allowRegistration
-                            "
+                            v-if="mode === 'login' && allowRegistration"
                             type="button"
                             class="text-button"
                             @click="
@@ -341,6 +398,40 @@ onBeforeUnmount(() => clearInterval(timer));
                         </button>
                     </div>
                 </form>
+                <div
+                    v-if="
+                        config?.is_linuxdo &&
+                        mode === 'login' &&
+                        !linuxDoPending
+                    "
+                    class="linuxdo-login"
+                >
+                    <div class="auth-divider"><span>或使用社区账户</span></div>
+                    <button
+                        type="button"
+                        class="button button-secondary full-width"
+                        :disabled="busy || sending"
+                        @click="loginWithLinuxDo"
+                    >
+                        <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 120 120"
+                            aria-hidden="true"
+                        >
+                            <circle cx="60" cy="60" r="58" fill="#f0f0f0" />
+                            <path
+                                d="M10 40a53 53 0 0 1 100 0Z"
+                                fill="#1c1c1e"
+                            />
+                            <path
+                                d="M10 80h100a53 53 0 0 1-100 0Z"
+                                fill="#ffb003"
+                            />
+                        </svg>
+                        {{ busy ? "正在跳转…" : "使用 Linux DO 登录" }}
+                    </button>
+                </div>
                 <p class="auth-privacy">
                     请在自己的设备上登录，并妥善保管订阅链接。
                     <br />主题 v{{ portalBuildVersion }}

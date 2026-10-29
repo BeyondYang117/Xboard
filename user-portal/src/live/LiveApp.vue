@@ -16,6 +16,7 @@ import {
     Wallet,
 } from "@lucide/vue";
 import { api, authToken, setAuthToken } from "./api";
+import { finishLinuxDo } from "./linuxdo";
 import { portalConfig, readPreference, savePreference } from "./config";
 import {
     accountState,
@@ -200,6 +201,18 @@ watch(
 onMounted(async () => {
     route();
     window.addEventListener("hashchange", route);
+    if (location.hash.startsWith("#linuxdo?")) {
+        verifying.value = true;
+        setAuthToken("");
+        try {
+            await finishLinuxDo();
+        } catch (cause) {
+            verifyError.value = (cause as Error).message;
+        } finally {
+            verifying.value = false;
+        }
+        return;
+    }
     const verify = new URLSearchParams(location.hash.split("?")[1] || "").get(
         "verify",
     );
@@ -231,7 +244,7 @@ document.documentElement.dataset.accent = portalConfig.accent;
     </div>
     <template v-else-if="!authToken"
         ><div v-if="verifyError" class="auth-link-error" role="alert">
-            登录链接未能验证：{{ verifyError }}。请重新登录。
+            {{ verifyError }} 请重新登录。
         </div>
         <AuthPage
             :theme="theme"

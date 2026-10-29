@@ -13,6 +13,8 @@ class CommController extends Controller
     public function config()
     {
         $data = [
+            'is_linuxdo' => app(\App\Services\Auth\LinuxDoService::class)->enabled(),
+            'is_register' => !(bool) admin_setting('stop_register', 0),
             'tos_url' => admin_setting('tos_url'),
             'is_email_verify' => (int) admin_setting('email_verify', 0) ? 1 : 0,
             'is_invite_force' => (int) admin_setting('invite_force', 0) ? 1 : 0,

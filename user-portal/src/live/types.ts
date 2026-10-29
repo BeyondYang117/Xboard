@@ -110,6 +110,8 @@ export interface PaymentResult {
     data: string | boolean;
 }
 export interface GuestConfig {
+    is_linuxdo?: boolean;
+    is_register?: boolean;
     tos_url?: string | null;
     is_email_verify: number;
     is_invite_force: number;
@@ -122,6 +124,11 @@ export interface GuestConfig {
 }
 export interface AuthData {
     auth_data: string;
+}
+export interface LinuxDoAccountRequired {
+    requires_account: true;
+    username: string;
+    trust_level: number;
 }
 export interface SiteConfig {
     reset_traffic_method?: number | null;

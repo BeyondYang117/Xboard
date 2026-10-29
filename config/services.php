@@ -2,6 +2,14 @@
 
 return [
 
+    'linuxdo' => [
+        'enabled' => env('LINUXDO_ENABLED', false),
+        'client_id' => env('LINUXDO_CLIENT_ID', ''),
+        'client_secret' => env('LINUXDO_CLIENT_SECRET', ''),
+        'redirect_uri' => env('LINUXDO_REDIRECT_URI', ''),
+        'min_trust_level' => (int) env('LINUXDO_MIN_TRUST_LEVEL', 0),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

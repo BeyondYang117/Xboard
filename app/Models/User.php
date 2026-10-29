@@ -43,6 +43,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $next_reset_at 下次流量重置时间
  * @property int|null $last_reset_at 上次流量重置时间
  * @property int|null $telegram_id Telegram ID
+ * @property string|null $linuxdo_id Linux DO Connect user ID
+ * @property string|null $linuxdo_username Linux DO username
  * @property int $reset_count 流量重置次数
  * @property int $created_at
  * @property int $updated_at

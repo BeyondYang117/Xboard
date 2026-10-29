@@ -767,3 +767,29 @@
         min-width: 0;
     }
 }
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 16px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--line);
+}
+.linuxdo-pending {
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+.linuxdo-pending p {
+    margin: 6px 0;
+    color: var(--muted);
+}

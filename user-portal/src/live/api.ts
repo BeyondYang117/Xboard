@@ -4,6 +4,7 @@ import type {
     AuthData,
     CaptchaPayload,
     GuestConfig,
+    LinuxDoAccountRequired,
     Notice,
     Order,
     PaymentMethod,
@@ -112,6 +113,24 @@ const query = (values: Record<string, string | number>) =>
         Object.entries(values).map(([k, v]) => [k, String(v)]),
     ).toString();
 export const api = {
+    linuxDoStart: (verifier: string) =>
+        request<{ url: string }>("/passport/auth/linuxdo/start", {
+            body: { verifier },
+            public: true,
+        }),
+    linuxDoExchange: (ticket: string, verifier: string) =>
+        request<AuthData | LinuxDoAccountRequired>(
+            "/passport/auth/linuxdo/exchange",
+            {
+                body: { ticket, verifier },
+                public: true,
+            },
+        ),
+    linuxDoComplete: (body: Record<string, unknown>) =>
+        request<AuthData>("/passport/auth/linuxdo/complete", {
+            body,
+            public: true,
+        }),
     guestConfig: () =>
         request<GuestConfig>("/guest/comm/config", { public: true }),
     login: (body: { email: string; password: string }) =>

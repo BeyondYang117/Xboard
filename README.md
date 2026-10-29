@@ -47,6 +47,7 @@ docker compose up -d
 - [外部机场订阅导入](./docs/zh/subscription-import.md) - 导入、更新和使用范围说明
 - [节点多维管理](./docs/zh/node-filters.md) - 协议、地区分组，组合筛选、批量分类与常用视图
 - [节点连通性测试](./docs/zh/node-probe.md) - TCP 端口与代理请求实测、批量测试与结果说明
+- [Linux DO 授权登录](./docs/zh/linuxdo-login.md) - 新主题 OAuth2 登录、首次绑定与部署配置
 
 ### Deployment Guides
 

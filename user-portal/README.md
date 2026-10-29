@@ -1,6 +1,6 @@
 # Xboard 用户主题 · V2
 
-Vue 3 + TypeScript 用户中心，版本 `0.2.6`。提供三种视觉风格，共用真实 Xboard API：
+Vue 3 + TypeScript 用户中心，版本 `0.2.7`。提供三种视觉风格，共用真实 Xboard API：
 
 - **星旅**：日系轻幻想，天空、远山与旅行者，默认风格。
 - **夜航**：哥特悬疑，纸张、墨绿、月下庄园。
@@ -13,7 +13,7 @@ Vue 3 + TypeScript 用户中心，版本 `0.2.6`。提供三种视觉风格，�
 这是通过「主题管理」安装的主题包，与功能插件分开管理。
 
 1. 部署本次仓库的后端改动，并按现有项目流程清理应用缓存。
-2. 在后台「主题管理」上传 `release/XboardPortal-0.2.6.zip`，启用 `XboardPortal`。
+2. 在后台「主题管理」上传 `release/XboardPortal-0.2.7.zip`，启用 `XboardPortal`。
 3. 在主题配置中选择视觉风格、默认明暗、标语、封面与客户端下载地址。站点名称、Logo 和注册策略沿用站点配置。
 4. 用测试账户完成登录、订阅与支付渠道验收后，再开放给用户。
 
@@ -30,6 +30,12 @@ ZIP 根目录包含 `config.json`、`dashboard.blade.php` 与 `assets/`，不需
 `0.2.1` 还需同步部署 `app/Http/Controllers/V1/User/CommController.php` 与 `app/Http/Resources/PlanResource.php`：用户配置接口提供后台 APP 的客户端名称 / 版本和下载地址，`UserController` 的当前订阅套餐说明与套餐列表共用模板渲染，保留原有价格格式。
 
 仅上传主题 ZIP 到未包含这些修改的旧版本，不能保证完整兼容。本次开发没有修改或启用现有生产主题。
+
+## 0.2.7 Linux DO 授权登录
+
+登录页增加 Linux DO Connect 授权入口。首次授权后选择「绑定已有账户」或「创建新账户」；绑定完成后可直接使用 Linux DO 登录。注册沿用本站邮箱验证、邀请码、CAPTCHA、邮箱白名单、IP 注册限制、试用套餐和插件钩子。关闭注册后，已绑定用户和已有本站账户仍可登录或绑定。
+
+必须同步部署后端和数据库迁移；只上传主题 ZIP 不能启用授权登录。Client Secret 配置在服务器 `.env`，不填入主题配置。配置步骤与回调地址见 [Linux DO 接入文档](../docs/zh/linuxdo-login.md)。
 
 ## 0.2.6 零容量套餐被误判售罄
 
@@ -61,7 +67,7 @@ ZIP 根目录包含 `config.json`、`dashboard.blade.php` 与 `assets/`，不需
 
 入口 JS 与 CSS 改用 Vite 内容哈希文件名，打包时从构建清单写入 Blade，避免浏览器或 CDN 命中旧的 `portal.js` 后继续运行旧代码。登录 / 注册页底部显示实际前端构建版本（不取服务器注入的版本）。
 
-升级后打开登录页，底部版本应与安装包一致（当前为「主题 v0.2.6」）。若仍是旧页面，清理 CDN 的首页 HTML 缓存并刷新；静态资源已换地址，无需关闭整站缓存。PHP 使用常驻进程或 OPcache 时，按现有部署流程重载服务。没有这个版本标记就不能确认新前端已经加载。
+升级后打开登录页，底部版本应与安装包一致（当前为「主题 v0.2.7」）。若仍是旧页面，清理 CDN 的首页 HTML 缓存并刷新；静态资源已换地址，无需关闭整站缓存。PHP 使用常驻进程或 OPcache 时，按现有部署流程重载服务。没有这个版本标记就不能确认新前端已经加载。
 
 ## 0.2.2 紧急修复
 
@@ -121,7 +127,7 @@ npm test
 npm run package:theme
 ```
 
-打包前执行 Vue / TypeScript 检查，产物为 `release/XboardPortal-0.2.6.zip`。`npm run build` 单独输出静态资源到 `dist/`；正式使用应通过主题包安装，由 Blade 注入站点配置。
+打包前执行 Vue / TypeScript 检查，产物为 `release/XboardPortal-0.2.7.zip`。`npm run build` 单独输出静态资源到 `dist/`；正式使用应通过主题包安装，由 Blade 注入站点配置。
 
 ## 隔离集成测试
 
