@@ -33,6 +33,7 @@ export interface UserInfo {
     email: string;
     linuxdo_id?: string | null;
     linuxdo_username?: string | null;
+    telegram_id?: number | string | null;
     balance: number;
     banned: number | boolean;
     remind_expire: number;
@@ -133,6 +134,7 @@ export interface LinuxDoAccountRequired {
     trust_level: number;
 }
 export interface SiteConfig {
+    is_telegram?: number | boolean;
     reset_traffic_method?: number | null;
     currency?: string;
     currency_symbol?: string;

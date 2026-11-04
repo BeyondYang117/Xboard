@@ -27,6 +27,10 @@ for (const name of [
 test("the account page shows bound identities safely and distinguishes unbound accounts from old servers", async () => {
     const { createApp, nextTick } = await import("vue");
     const { portal, resetPortal } = await import("../src/live/store");
+    const { api } = await import("../src/live/api");
+    const originalLink = api.telegramBindingLink;
+    const originalUnbind = api.telegramUnbind;
+    const originalUser = api.user;
     const source = await readFile(
         new URL("../src/live/components/AccountPage.vue", import.meta.url),
         "utf8",
@@ -90,7 +94,80 @@ test("the account page shows bound identities safely and distinguishes unbound a
         assert.match(row().textContent!, /更新服务端后可查看绑定状态/);
         assert.match(row().textContent!, /暂不可用/);
         assert.doesNotMatch(row().textContent!, /未绑定/);
+
+        // Exercise the full website flow without leaving the page or exposing
+        // a subscription token in Telegram URLs.
+        portal.user.data = { ...user, telegram_id: null };
+        portal.site.data = { is_telegram: 1 };
+        const tgRow = () => document.querySelector(".telegram-account-row")!;
+        const click = async (label: string) => {
+            const button = Array.from(tgRow().querySelectorAll("button")).find(
+                (item) => item.textContent?.trim() === label,
+            );
+            assert.ok(button, `Missing button: ${label}`);
+            button.click();
+            await new Promise((resolve) => setImmediate(resolve));
+            await nextTick();
+        };
+        let unbinds = 0;
+        api.telegramBindingLink = async () => ({
+            url: "https://t.me/test_bot?start=bind_" + "a".repeat(40),
+            expires_at: Math.floor(Date.now() / 1000) + 300,
+        });
+        api.telegramUnbind = async () => {
+            unbinds++;
+            return true;
+        };
+        api.user = async () => ({ ...user, telegram_id: 123456789 });
+        await nextTick();
+        await click("绑定 Telegram");
+        const link = tgRow().querySelector("a")!;
+        assert.match(link.href, /^https:\/\/t.me\/test_bot\?start=bind_/);
+        assert.equal(link.rel, "noopener noreferrer");
+        assert.match(tgRow().textContent!, /5 分钟内有效/);
+        window.dispatchEvent(new dom.window.Event("focus"));
+        await new Promise((resolve) => setImmediate(resolve));
+        await nextTick();
+        assert.match(tgRow().textContent!, /已绑定 · 用户 ID：123456789/);
+        assert.equal(tgRow().querySelector("a"), null);
+        await click("解除绑定");
+        assert.equal(unbinds, 0);
+        await click("取消");
+        assert.equal(unbinds, 0);
+        await click("解除绑定");
+        await click("确认解绑");
+        assert.equal(unbinds, 1);
+        assert.equal(portal.user.data?.telegram_id, null);
+
+        api.telegramBindingLink = async () => {
+            throw new Error("站点暂未开启 Telegram Bot");
+        };
+        await click("绑定 Telegram");
+        assert.match(
+            tgRow().querySelector('[role="alert"]')!.textContent!,
+            /暂未开启/,
+        );
+        api.telegramBindingLink = async () => ({
+            url: "javascript:alert(1)",
+            expires_at: 1,
+        });
+        await click("绑定 Telegram");
+        assert.equal(tgRow().querySelector("a"), null);
+        assert.match(tgRow().textContent!, /绑定链接格式异常/);
+        api.telegramBindingLink = async () => ({
+            url: "https://t.me/test_bot?start=bind_" + "b".repeat(40),
+            expires_at: Math.floor(Date.now() / 1000) - 1,
+        });
+        await click("绑定 Telegram");
+        assert.match(tgRow().textContent!, /绑定链接已过期/);
+        assert.equal(tgRow().querySelector("a"), null);
+        await click("撤销链接");
+        assert.equal(unbinds, 2);
+        assert.doesNotMatch(tgRow().textContent!, /绑定链接已过期/);
     } finally {
+        api.telegramBindingLink = originalLink;
+        api.telegramUnbind = originalUnbind;
+        api.user = originalUser;
         app?.unmount();
         resetPortal();
         await unlink(file);

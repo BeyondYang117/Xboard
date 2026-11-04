@@ -54,10 +54,12 @@ class TicketService
 
     public function createTicket($userId, $subject, $level, $message)
     {
-        try {
-            DB::beginTransaction();
-            if (Ticket::where('status', 0)->where('user_id', $userId)->lockForUpdate()->first()) {
-                DB::rollBack();
+        return DB::transaction(function () use ($userId, $subject, $level, $message) {
+            // Lock the owner even when there is no open ticket to lock yet.
+            if (!User::whereKey($userId)->lockForUpdate()->first()) {
+                throw new ApiException(__('The user does not exist'));
+            }
+            if (Ticket::where('status', Ticket::STATUS_OPENING)->where('user_id', $userId)->lockForUpdate()->first()) {
                 throw new ApiException('存在未关闭的工单');
             }
             $ticket = Ticket::create([
@@ -67,24 +69,52 @@ class TicketService
                 'reply_status' => Ticket::REPLY_STATUS_WAITING,
                 'last_reply_user_id' => $userId,
             ]);
-            if (!$ticket) {
-                throw new ApiException('工单创建失败');
-            }
-            $ticketMessage = TicketMessage::create([
+            TicketMessage::create([
                 'user_id' => $userId,
                 'ticket_id' => $ticket->id,
-                'message' => $message
+                'message' => $message,
             ]);
-            if (!$ticketMessage) {
-                DB::rollBack();
-                throw new ApiException('工单消息创建失败');
-            }
-            DB::commit();
             return $ticket;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
+        });
+    }
+
+    public function replyByUser(int $ticketId, string $message, int $userId): TicketMessage
+    {
+        if (trim($message) === '') {
+            throw new ApiException(__('Message cannot be empty'));
         }
+        [$ticket, $ticketMessage] = DB::transaction(function () use ($ticketId, $message, $userId) {
+            $ticket = Ticket::whereKey($ticketId)->where('user_id', $userId)->lockForUpdate()->first();
+            if (!$ticket) {
+                throw new ApiException(__('Ticket does not exist'));
+            }
+            if ((int) $ticket->status !== Ticket::STATUS_OPENING) {
+                throw new ApiException(__('The ticket is closed and cannot be replied'));
+            }
+            $lastMessage = $ticket->messages()->orderByDesc('id')->lockForUpdate()->first();
+            if ((int) admin_setting('ticket_must_wait_reply', 0) && (int) $lastMessage?->user_id === $userId) {
+                throw new ApiException(__('Please wait for the technical enginneer to reply'));
+            }
+            $ticketMessage = $this->reply($ticket, $message, $userId);
+            if (!$ticketMessage) {
+                throw new ApiException(__('Ticket reply failed'));
+            }
+            return [$ticket, $ticketMessage];
+        });
+        HookManager::call('ticket.reply.user.after', $ticket);
+        return $ticketMessage;
+    }
+
+    public function closeByUser(int $ticketId, int $userId): void
+    {
+        DB::transaction(function () use ($ticketId, $userId) {
+            $ticket = Ticket::whereKey($ticketId)->where('user_id', $userId)->lockForUpdate()->first();
+            if (!$ticket) {
+                throw new ApiException(__('Ticket does not exist'));
+            }
+            $ticket->status = Ticket::STATUS_CLOSED;
+            $ticket->saveOrFail();
+        });
     }
 
     // 半小时内不再重复通知

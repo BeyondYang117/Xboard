@@ -170,6 +170,13 @@ export const api = {
     plans: () => request<Plan[]>("/user/plan/fetch"),
     traffic: () => request<TrafficRecord[]>("/user/stat/getTrafficLog"),
     siteConfig: () => request<SiteConfig>("/user/comm/config"),
+    telegramBindingLink: () =>
+        request<{ url: string; expires_at: number }>(
+            "/user/telegram/createBindingLink",
+            { body: {} },
+        ),
+    telegramUnbind: () =>
+        request<boolean>("/user/telegram/unbind", { body: {} }),
     articles: () =>
         request<Record<string, Article[]>>(
             "/user/knowledge/fetch?language=zh-CN",

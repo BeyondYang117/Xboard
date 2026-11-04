@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { LogOut, Moon, ShieldCheck, Sun } from "@lucide/vue";
 import { api } from "../api";
 import {
@@ -15,6 +15,75 @@ defineEmits<{ theme: [value: string]; logout: [] }>();
 const user = computed(() => portal.user.data!);
 const saving = ref(false),
     error = ref("");
+const telegramBusy = ref(false),
+    telegramError = ref(""),
+    bindingUrl = ref(""),
+    bindingExpired = ref(false),
+    confirmUnbind = ref(false);
+let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+let active = true;
+const telegramAvailable = computed(() =>
+    Boolean(portal.site.data?.is_telegram),
+);
+function clearBindingLink() {
+    clearTimeout(expiryTimer);
+    bindingUrl.value = "";
+    bindingExpired.value = false;
+}
+async function telegramAction(action: "create" | "refresh" | "unbind") {
+    if (telegramBusy.value) return;
+    const email = user.value.email;
+    telegramBusy.value = true;
+    telegramError.value = "";
+    const current = () => active && portal.user.data?.email === email;
+    try {
+        if (action === "create") {
+            clearBindingLink();
+            const link = await api.telegramBindingLink();
+            if (!current()) return;
+            const url = new URL(link.url);
+            if (
+                url.protocol !== "https:" ||
+                url.hostname !== "t.me" ||
+                url.username ||
+                url.password
+            )
+                throw new Error("绑定链接格式异常，请重试。");
+            bindingUrl.value = url.href;
+            const remaining = link.expires_at * 1000 - Date.now();
+            bindingExpired.value = remaining <= 0;
+            if (remaining > 0)
+                expiryTimer = setTimeout(() => {
+                    bindingExpired.value = true;
+                }, remaining);
+        } else if (action === "refresh") {
+            const info = await api.user();
+            if (!current()) return;
+            portal.user.data = info;
+            if (info.telegram_id) clearBindingLink();
+        } else {
+            await api.telegramUnbind();
+            if (!current()) return;
+            portal.user.data = { ...user.value, telegram_id: null };
+            clearBindingLink();
+            confirmUnbind.value = false;
+            notify("Telegram 绑定已解除，未使用的绑定链接已失效。");
+        }
+    } catch (cause) {
+        if (current()) telegramError.value = (cause as Error).message;
+    } finally {
+        if (active) telegramBusy.value = false;
+    }
+}
+function refreshTelegramOnFocus() {
+    if (bindingUrl.value) void telegramAction("refresh");
+}
+onMounted(() => window.addEventListener("focus", refreshTelegramOnFocus));
+onBeforeUnmount(() => {
+    active = false;
+    clearTimeout(expiryTimer);
+    window.removeEventListener("focus", refreshTelegramOnFocus);
+});
 async function toggle(key: "remind_expire" | "remind_traffic") {
     if (saving.value) return;
     saving.value = true;
@@ -79,6 +148,98 @@ async function toggle(key: "remind_expire" | "remind_traffic") {
                 user.linuxdo_id === null ? "未绑定" : "暂不可用"
             }}</span>
         </div>
+        <div class="settings-row telegram-account-row">
+            <div class="telegram-account-details">
+                <h3>Telegram</h3>
+                <p v-if="user.telegram_id">
+                    已绑定 · 用户 ID：{{ user.telegram_id }}
+                </p>
+                <p v-else>
+                    绑定后可查询账户、接收提醒，并在 Telegram 中联系客服。
+                </p>
+                <p v-if="!telegramAvailable">站点暂未开启 Telegram Bot。</p>
+                <p v-if="bindingUrl && !user.telegram_id">
+                    {{
+                        bindingExpired
+                            ? "绑定链接已过期，请重新生成。"
+                            : "链接 5 分钟内有效。打开 Telegram 后点击确认绑定，请勿转发。"
+                    }}
+                </p>
+                <p v-if="confirmUnbind">
+                    确认解除绑定？解绑后将停止接收 Telegram 提醒。
+                </p>
+                <p v-if="telegramError" class="field-error" role="alert">
+                    {{ telegramError }}
+                </p>
+            </div>
+            <div class="telegram-actions">
+                <template v-if="confirmUnbind">
+                    <button
+                        class="button button-secondary"
+                        :disabled="telegramBusy"
+                        @click="telegramAction('unbind')"
+                    >
+                        确认解绑
+                    </button>
+                    <button
+                        class="button button-ghost"
+                        :disabled="telegramBusy"
+                        @click="confirmUnbind = false"
+                    >
+                        取消
+                    </button>
+                </template>
+                <template v-else-if="user.telegram_id">
+                    <button
+                        class="button button-secondary"
+                        :disabled="telegramBusy"
+                        @click="confirmUnbind = true"
+                    >
+                        解除绑定
+                    </button>
+                </template>
+                <template v-else-if="telegramAvailable">
+                    <button
+                        class="button button-secondary"
+                        :disabled="telegramBusy"
+                        @click="telegramAction('create')"
+                    >
+                        {{
+                            telegramBusy
+                                ? "处理中…"
+                                : bindingUrl
+                                  ? "重新生成链接"
+                                  : "绑定 Telegram"
+                        }}
+                    </button>
+                    <template v-if="bindingUrl">
+                        <a
+                            v-if="!bindingExpired"
+                            class="button button-primary"
+                            :href="bindingUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            referrerpolicy="no-referrer"
+                            >打开 Telegram</a
+                        >
+                        <button
+                            class="button button-ghost"
+                            :disabled="telegramBusy"
+                            @click="telegramAction('refresh')"
+                        >
+                            刷新绑定状态
+                        </button>
+                        <button
+                            class="button button-ghost"
+                            :disabled="telegramBusy"
+                            @click="telegramAction('unbind')"
+                        >
+                            撤销链接
+                        </button>
+                    </template>
+                </template>
+            </div>
+        </div>
         <div class="settings-row">
             <div>
                 <h3>账户余额</h3>
@@ -110,12 +271,14 @@ async function toggle(key: "remind_expire" | "remind_traffic") {
                 {
                     key: 'remind_expire' as const,
                     title: '订阅到期提醒',
-                    description: '在订阅临近到期时接收邮件提醒。',
+                    description:
+                        '在订阅临近到期时接收邮件提醒；绑定 Telegram 后也可接收 Bot 提醒。',
                 },
                 {
                     key: 'remind_traffic' as const,
                     title: '剩余流量提醒',
-                    description: '在流量不足时接收邮件提醒。',
+                    description:
+                        '在流量不足时接收邮件提醒；绑定 Telegram 后也可接收 Bot 提醒。',
                 },
             ]"
             :key="item.key"

@@ -780,6 +780,25 @@
 .linuxdo-account-row > span {
     flex-shrink: 0;
 }
+.telegram-account-row {
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.telegram-account-details {
+    flex: 1 1 240px;
+    min-width: 0;
+}
+.settings-row.telegram-account-row p {
+    max-width: 560px;
+    overflow-wrap: anywhere;
+}
+.telegram-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
 .auth-divider {
     display: flex;
     align-items: center;

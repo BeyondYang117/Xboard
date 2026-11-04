@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\ApiException;
+use App\Exceptions\TelegramApiException;
 use App\Jobs\SendTelegramJob;
 use App\Models\User;
 use App\Services\Plugin\HookManager;
@@ -20,22 +20,30 @@ class TelegramService
         $botToken = admin_setting('telegram_bot_token', $token);
         $this->apiUrl = "https://api.telegram.org/bot{$botToken}/";
 
-        $this->http = Http::timeout(30)
-            ->retry(3, 1000)
+        $this->http = Http::connectTimeout(5)->timeout(10)
             ->withHeaders([
                 'Accept' => 'application/json',
             ]);
     }
 
-    public function sendMessage(int $chatId, string $text, string $parseMode = ''): void
+    public function sendMessage(int $chatId, string $text, string $parseMode = '', array $replyMarkup = []): void
     {
         $text = $parseMode === 'markdown' ? str_replace('_', '\_', $text) : $text;
-
-        $this->request('sendMessage', [
+        $params = [
             'chat_id' => $chatId,
             'text' => $text,
             'parse_mode' => $parseMode ?: null,
-        ]);
+            'link_preview_options' => ['is_disabled' => true],
+        ];
+        if ($replyMarkup) {
+            $params['reply_markup'] = $replyMarkup;
+        }
+        $this->request('sendMessage', $params);
+    }
+
+    public function answerCallbackQuery(string $callbackId): void
+    {
+        $this->request('answerCallbackQuery', ['callback_query_id' => $callbackId]);
     }
 
     public function approveChatJoinRequest(int $chatId, int $userId): void
@@ -61,7 +69,10 @@ class TelegramService
 
     public function setWebhook(string $url): object
     {
-        $result = $this->request('setWebhook', ['url' => $url]);
+        $result = $this->request('setWebhook', [
+            'url' => $url,
+            'allowed_updates' => ['message', 'callback_query', 'chat_join_request'],
+        ]);
         return $result;
     }
 
@@ -112,49 +123,40 @@ class TelegramService
         return $this->request('deleteMyCommands');
     }
 
-    public function sendMessageWithAdmin(string $message, bool $isStaff = false): void
+    public function sendMessageWithAdmin(string $message, bool $isStaff = false, string $parseMode = 'markdown'): void
     {
-        $query = User::where('telegram_id', '!=', null);
+        $query = User::whereNotNull('telegram_id');
         $query->where(
             fn($q) => $q->where('is_admin', 1)
                 ->when($isStaff, fn($q) => $q->orWhere('is_staff', 1))
         );
         $users = $query->get();
         foreach ($users as $user) {
-            SendTelegramJob::dispatch($user->telegram_id, $message);
+            SendTelegramJob::dispatch($user->telegram_id, $message, $parseMode);
         }
     }
 
     protected function request(string $method, array $params = []): object
     {
         try {
-            $response = $this->http->get($this->apiUrl . $method, $params);
-
-            if (!$response->successful()) {
-                throw new ApiException("HTTP 请求失败: {$response->status()}");
-            }
-
+            $response = $this->http->post($this->apiUrl . $method, $params);
             $data = $response->object();
-
-            if (!isset($data->ok)) {
-                throw new ApiException('无效的 Telegram API 响应');
+            if (!$response->successful() || !isset($data->ok) || !$data->ok) {
+                $code = (int) ($data->error_code ?? ($response->successful() ? 502 : $response->status()));
+                throw new TelegramApiException(
+                    'Telegram API 错误: ' . ($data->description ?? '无效的响应'),
+                    $code,
+                    isset($data->parameters->retry_after) ? (int) $data->parameters->retry_after : null
+                );
             }
-
-            if (!$data->ok) {
-                $description = $data->description ?? '未知错误';
-                throw new ApiException("Telegram API 错误: {$description}");
-            }
-
             return $data;
-
+        } catch (TelegramApiException $e) {
+            Log::error('Telegram API 请求失败', ['method' => $method, 'code' => $e->getCode()]);
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('Telegram API 请求失败', [
-                'method' => $method,
-                'params' => $params,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new ApiException("Telegram 服务错误: {$e->getMessage()}");
+            // HTTP exceptions contain the token in their URL. Never log or return it.
+            Log::error('Telegram API 连接失败', ['method' => $method, 'exception' => get_class($e)]);
+            throw new TelegramApiException('Telegram 服务暂时无法连接，请稍后重试');
         }
     }
 }

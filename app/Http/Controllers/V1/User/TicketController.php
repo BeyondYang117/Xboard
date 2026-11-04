@@ -61,29 +61,11 @@ class TicketController extends Controller
         if (empty($request->input('message'))) {
             return $this->fail([400, __('Message cannot be empty')]);
         }
-        $ticket = Ticket::where('id', $request->input('id'))
-            ->where('user_id', $request->user()->id)
-            ->first();
-        if (!$ticket) {
-            return $this->fail([400, __('Ticket does not exist')]);
-        }
-        if ($ticket->status) {
-            return $this->fail([400, __('The ticket is closed and cannot be replied')]);
-        }
-        if ((int) admin_setting('ticket_must_wait_reply', 0) && $request->user()->id == $this->getLastMessage($ticket->id)->user_id) {
-            return $this->fail(codeResponse: [400, __('Please wait for the technical enginneer to reply')]);
-        }
-        $ticketService = new TicketService();
-        if (
-            !$ticketService->reply(
-                $ticket,
-                $request->input('message'),
-                $request->user()->id
-            )
-        ) {
-            return $this->fail([400, __('Ticket reply failed')]);
-        }
-        HookManager::call('ticket.reply.user.after', $ticket);
+        app(TicketService::class)->replyByUser(
+            (int) $request->input('id'),
+            (string) $request->input('message'),
+            $request->user()->id
+        );
         return $this->success(true);
     }
 
@@ -93,24 +75,8 @@ class TicketController extends Controller
         if (empty($request->input('id'))) {
             return $this->fail([422, __('Invalid parameter')]);
         }
-        $ticket = Ticket::where('id', $request->input('id'))
-            ->where('user_id', $request->user()->id)
-            ->first();
-        if (!$ticket) {
-            return $this->fail([400, __('Ticket does not exist')]);
-        }
-        $ticket->status = Ticket::STATUS_CLOSED;
-        if (!$ticket->save()) {
-            return $this->fail([500, __('Close failed')]);
-        }
+        app(TicketService::class)->closeByUser((int) $request->input('id'), $request->user()->id);
         return $this->success(true);
-    }
-
-    private function getLastMessage($ticketId)
-    {
-        return TicketMessage::where('ticket_id', $ticketId)
-            ->orderBy('id', 'DESC')
-            ->first();
     }
 
     public function withdraw(TicketWithdraw $request)
