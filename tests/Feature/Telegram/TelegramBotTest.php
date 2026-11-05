@@ -273,7 +273,7 @@ class TelegramBotTest extends TestCase
         $this->assertSentText('20.00 / 100.00 GB');
         $this->assertSentText('12.34 元');
         $this->assertSentText('下次重置：');
-        Http::assertSent(fn (ClientRequest $request) => $request['parse_mode'] === null && $request->method() === 'POST');
+        Http::assertSent(fn (ClientRequest $request) => !array_key_exists('parse_mode', $request->data()) && $request->method() === 'POST');
     }
 
     public function test_group_start_does_not_disclose_an_account(): void
@@ -560,6 +560,31 @@ class TelegramBotTest extends TestCase
         Http::assertSent(fn (ClientRequest $request) => $request->method() === 'POST' && $request['text'] === 'token_under_score');
     }
 
+    public function test_plain_text_omits_parse_mode_and_formatted_messages_keep_it(): void
+    {
+        Http::swap(new Factory());
+        Http::preventStrayRequests();
+        Http::fake(function (ClientRequest $request) {
+            if (array_key_exists('parse_mode', $request->data()) && !$request['parse_mode']) {
+                return Http::response([
+                    'ok' => false, 'error_code' => 400,
+                    'description' => 'Bad Request: unsupported parse_mode',
+                ], 400);
+            }
+            return Http::response(['ok' => true, 'result' => []]);
+        });
+
+        $service = app(TelegramService::class);
+        $service->sendMessage(1001, 'literal_under_score');
+        $service->sendMessage(1001, 'formatted_under_score', 'markdown');
+
+        Http::assertSentCount(2);
+        Http::assertSent(fn (ClientRequest $request) => $request['text'] === 'literal_under_score'
+            && !array_key_exists('parse_mode', $request->data()));
+        Http::assertSent(fn (ClientRequest $request) => ($request->data()['parse_mode'] ?? null) === 'markdown'
+            && $request['text'] === 'formatted\\_under\\_score');
+    }
+
     public function test_queue_jobs_respect_rate_limits_and_fail_permanent_errors(): void
     {
         $service = Mockery::mock(TelegramService::class);
@@ -820,7 +845,7 @@ class TelegramBotTest extends TestCase
         $service->notifyReply($message->id, $owner->id, 1001);
         Http::assertSentCount(1);
         $this->assertSentText('answer_*[]');
-        Http::assertSent(fn (ClientRequest $request) => $request['chat_id'] === 1001 && $request['parse_mode'] === null);
+        Http::assertSent(fn (ClientRequest $request) => $request['chat_id'] === 1001 && !array_key_exists('parse_mode', $request->data()));
     }
 
     public function test_queued_staff_reply_is_dropped_after_binding_config_or_owner_changes(): void

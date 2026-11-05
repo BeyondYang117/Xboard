@@ -32,9 +32,12 @@ class TelegramService
         $params = [
             'chat_id' => $chatId,
             'text' => $text,
-            'parse_mode' => $parseMode ?: null,
             'link_preview_options' => ['is_disabled' => true],
         ];
+        // Telegram rejects a JSON null parse_mode; omit it for literal text.
+        if ($parseMode !== '') {
+            $params['parse_mode'] = $parseMode;
+        }
         if ($replyMarkup) {
             $params['reply_markup'] = $replyMarkup;
         }
