@@ -5,6 +5,9 @@ namespace App\Http\Controllers\V2\Admin\Server;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\Server;
+use App\Models\ServerSubscription;
+use App\Services\Subscription\SubscriptionManager;
+use App\Services\Subscription\SubscriptionGateway;
 use App\Services\Subscription\SubscriptionFetcher;
 use App\Services\Subscription\SubscriptionParser;
 use Illuminate\Http\Request;
@@ -34,6 +37,7 @@ class SubscriptionController extends Controller
             'expires_in' => 600,
             'nodes' => array_map(fn ($node) => array_intersect_key($node, array_flip(['key', 'name', 'type', 'host', 'port'])), $parsed['nodes']),
             'skipped' => $parsed['skipped'],
+            'subscription' => ServerSubscription::where('source', $payload['source'])->first(),
         ]);
     }
 
@@ -46,7 +50,7 @@ class SubscriptionController extends Controller
             'group_ids' => 'required|array|min:1',
             'group_ids.*' => 'required|integer|distinct|exists:v2_server_group,id',
             'show' => 'required|boolean',
-        ]);
+        ] + SubscriptionManager::rules());
         $cached = Cache::get('subscription-preview:' . $params['preview_token']);
         if (!$cached) {
             throw new ApiException('预览已过期，请重新获取订阅', 422);
@@ -60,6 +64,17 @@ class SubscriptionController extends Controller
 
         $result = Cache::lock('subscription-import:' . $payload['source'], 30)->block(5, function () use ($payload, $nodes, $params) {
             return DB::transaction(function () use ($payload, $nodes, $params) {
+                $subscription = ServerSubscription::where('source', $payload['source'])->lockForUpdate()->first();
+                if (!$subscription) {
+                    $subscription = new ServerSubscription([
+                        'source' => $payload['source'], 'name' => '机场 ' . substr($payload['source'], 0, 8),
+                        'delivery_mode' => 'relay', 'rate' => 1, 'max_online' => 0,
+                        'online_limit_mode' => 'ip', 'gateway_port' => 2443, 'enabled' => true,
+                    ]);
+                }
+                SubscriptionManager::configure($subscription, $params);
+                $subscription->last_import_at = time();
+                $subscription->save();
                 $created = 0;
                 $updated = 0;
                 foreach ($nodes as $node) {
@@ -69,20 +84,77 @@ class SubscriptionController extends Controller
                     $server->exists ? $updated++ : $created++;
                     $server->fill($node + [
                         'external_source' => $payload['source'],
+                        'subscription_id' => $subscription->id,
                         'group_ids' => array_map('strval', $params['group_ids']),
                         'show' => (bool) $params['show'],
                         'machine_id' => null,
                         'enabled' => false,
                     ]);
                     if (!$server->exists) {
-                        $server->rate = 1;
+                        $server->rate = $subscription->rate;
                         $server->tags = ['外部订阅'];
                     }
+                    if (array_key_exists('rate', $params)) $server->rate = $subscription->rate;
                     $server->save();
                 }
-                return compact('created', 'updated');
+                return compact('created', 'updated') + ['subscription_id' => $subscription->id];
             });
         });
         return $this->success($result);
+    }
+
+    public function subscriptions(SubscriptionGateway $gateway)
+    {
+        return $this->success(ServerSubscription::withCount('nodes')->orderBy('id')->get()->map(function ($subscription) use ($gateway) {
+            return $subscription->toArray() + $gateway->online($subscription->id) + [
+                'available' => $subscription->isAvailable(),
+                'gateway_online' => (bool) Cache::get('subscription-gateway:' . $subscription->id),
+            ];
+        }));
+    }
+
+    public function gatewayConfig()
+    {
+        return $this->success([
+            'host' => config('subscription_gateway.host'),
+            'port' => (int) config('subscription_gateway.port', 2443),
+            'online' => (bool) Cache::get('subscription-gateway:shared'),
+        ]);
+    }
+
+    public function saveSubscription(Request $request)
+    {
+        $params = $request->validate([
+            'id' => 'required|integer|exists:v2_server_subscription,id',
+            'group_ids' => 'sometimes|required|array|min:1',
+            'group_ids.*' => 'required|integer|distinct|exists:v2_server_group,id',
+            'show' => 'sometimes|required|boolean',
+            'reset_usage' => 'sometimes|required|boolean',
+        ] + SubscriptionManager::rules());
+        DB::transaction(function () use ($params) {
+            $subscription = ServerSubscription::lockForUpdate()->findOrFail($params['id']);
+            SubscriptionManager::configure($subscription, $params);
+            if (!empty($params['reset_usage'])) $subscription->update(['u' => 0, 'd' => 0]);
+            foreach ($subscription->nodes()->get() as $node) {
+                $changes = array_intersect_key($params, array_flip(['group_ids', 'show', 'rate']));
+                if (isset($changes['group_ids'])) $changes['group_ids'] = array_map('strval', $changes['group_ids']);
+                if ($changes) $node->update($changes);
+            }
+        });
+        return $this->success(true);
+    }
+
+    public function deleteSubscription(Request $request)
+    {
+        $params = $request->validate(['id' => 'required|integer|exists:v2_server_subscription,id']);
+        $deleted = DB::transaction(function () use ($params) {
+            $subscription = ServerSubscription::lockForUpdate()->findOrFail($params['id']);
+            $nodes = $subscription->nodes()->get();
+            foreach ($nodes as $node) $node->delete();
+            $subscription->delete();
+            // Retain traffic statistics and session accounting for final flush/retries.
+            return $nodes->count();
+        });
+        return $this->success(['deleted' => $deleted]);
     }
 }

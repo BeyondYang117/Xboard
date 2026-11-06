@@ -38,6 +38,7 @@ class ServerFilter
     {
         $filters = array_filter($filters, fn ($value) => $value !== null && $value !== '' && $value !== []);
         return $servers->filter(function ($server) use ($filters) {
+            $hasHeartbeat = !($server->is_external ?? false) || (($server->subscription_id ?? null) && data_get($server, 'subscription.delivery_mode') === 'relay');
             foreach ($filters as $key => $value) {
                 $matches = match ($key) {
                     'keyword' => mb_stripos(implode(' ', [$server->id, $server->name, $server->host]), trim($value)) !== false,
@@ -46,8 +47,7 @@ class ServerFilter
                     'tag_exact' => $value === '__unclassified__' ? empty($server->tags) : in_array($value, $server->tags ?? [], true),
                     'show' => (int) $server->show === (int) $value,
                     'source' => $server->is_external === ($value === 'external'),
-                    // Upstream subscription nodes never report heartbeat to this panel.
-                    'status' => $value === 'external' ? $server->is_external : (!$server->is_external && $server->available_status === (int) $value),
+                    'status' => $value === 'external' ? !$hasHeartbeat : ($hasHeartbeat && $server->available_status === (int) $value),
                     'deployment' => match ($value) {
                         'standalone' => !$server->machine_id,
                         'managed' => (bool) $server->machine_id && $server->enabled === true,

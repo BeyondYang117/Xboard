@@ -178,15 +178,13 @@ class LinuxDoAuthTest extends TestCase
         $this->postJson(self::API . 'complete', $body)->assertStatus(400);
     }
 
-    public function test_registration_preserves_closed_invite_email_and_captcha_rules_then_creates_one_bound_account(): void
+    public function test_registration_skips_email_verification_and_preserves_other_rules_then_creates_one_bound_account(): void
     {
         $ticket = $this->ticket();
         $body = $this->payload($ticket, ['action' => 'register', 'email' => 'new@example.com', 'password' => 'new-password']);
         $this->settings['stop_register'] = 1;
         $this->postJson(self::API . 'complete', $body)->assertStatus(400);
         $this->settings = ['invite_force' => 1];
-        $this->postJson(self::API . 'complete', $body)->assertStatus(422);
-        $this->settings = ['email_verify' => 1];
         $this->postJson(self::API . 'complete', $body)->assertStatus(422);
         $this->settings = ['email_whitelist_enable' => 1, 'email_whitelist_suffix' => ['allowed.example']];
         $this->postJson(self::API . 'complete', $body)->assertStatus(400);
@@ -195,15 +193,43 @@ class LinuxDoAuthTest extends TestCase
         $this->assertDatabaseCount('v2_user', 0);
         $this->settings = ['email_verify' => 1, 'register_limit_by_ip_enable' => 1];
         Cache::put(CacheKey::get('EMAIL_VERIFY_CODE', $body['email']), '123456', 300);
-        $this->postJson(self::API . 'complete', $body + ['email_code' => '123456'])->assertOk();
+        $this->postJson(self::API . 'complete', $body)->assertOk();
         $this->assertDatabaseCount('v2_user', 1);
         $user = User::firstOrFail();
         $this->assertSame('123', $user->linuxdo_id);
         $this->assertTrue(password_verify('new-password', $user->password));
-        $this->assertNull(Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $body['email'])));
+        $this->assertSame('123456', Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $body['email'])));
         $this->assertSame(1, Cache::get(CacheKey::get('REGISTER_IP_RATE_LIMIT', '127.0.0.1')));
         $this->postJson(self::API . 'complete', $body)->assertStatus(400);
         $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    public function test_linuxdo_registration_still_requires_a_valid_unused_email(): void
+    {
+        $this->settings = ['email_verify' => 1];
+        $existing = $this->user(['email' => 'existing@example.com']);
+        $body = $this->payload($this->ticket(), ['action' => 'register', 'password' => 'new-password']);
+        foreach ([null, '', 'invalid-email'] as $email) {
+            $this->postJson(self::API . 'complete', $body + ['email' => $email])->assertUnprocessable()
+                ->assertJsonValidationErrors('email');
+        }
+        $this->postJson(self::API . 'complete', $body)->assertUnprocessable()
+            ->assertJsonValidationErrors('email');
+        $this->postJson(self::API . 'complete', $body + ['email' => $existing->email])->assertStatus(400);
+        $this->assertDatabaseCount('v2_user', 1);
+        $this->assertNull($existing->fresh()->linuxdo_id);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_normal_registration_still_requires_an_email_code(): void
+    {
+        $this->settings = ['email_verify' => 1];
+        $this->postJson('/api/v1/passport/auth/register', [
+            'email' => 'new@example.com', 'password' => 'new-password',
+            'requireEmailVerification' => false,
+        ])->assertStatus(422);
+        $this->assertDatabaseCount('v2_user', 0);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
     public function test_forbidden_provider_accounts_and_bad_responses_never_issue_tickets(): void

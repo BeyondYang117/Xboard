@@ -113,7 +113,7 @@ class Server extends Model
     protected $table = 'v2_server';
 
     protected $guarded = ['id'];
-    protected $hidden = ['external_password', 'external_source', 'external_key', 'region', 'management_group', 'provider'];
+    protected $hidden = ['external_password', 'external_source', 'external_key', 'region', 'management_group', 'provider', 'subscription'];
     protected $casts = [
         'external_password' => 'encrypted',
         'group_ids' => 'array',
@@ -404,6 +404,11 @@ class Server extends Model
     public function getIsExternalAttribute(): bool
     {
         return $this->external_source !== null;
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(ServerSubscription::class, 'subscription_id');
     }
     
     public static function isValidType(?string $type): bool

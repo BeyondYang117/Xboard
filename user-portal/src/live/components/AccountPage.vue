@@ -25,12 +25,28 @@ let active = true;
 const telegramAvailable = computed(() =>
     Boolean(portal.site.data?.is_telegram),
 );
+const bindingReady = computed(
+    () => Boolean(bindingUrl.value) && !bindingExpired.value,
+);
+async function copyBindingLink() {
+    if (!bindingReady.value) return;
+    try {
+        await navigator.clipboard.writeText(bindingUrl.value);
+        notify("绑定链接已复制，请在浏览器中打开，并选择 Telegram。");
+    } catch {
+        telegramError.value =
+            "自动复制失败，请长按或选中下方链接，手动复制到浏览器打开。";
+    }
+}
 function clearBindingLink() {
     clearTimeout(expiryTimer);
     bindingUrl.value = "";
     bindingExpired.value = false;
 }
-async function telegramAction(action: "create" | "refresh" | "unbind") {
+async function telegramAction(
+    action: "create" | "refresh" | "unbind",
+    feedback = false,
+) {
     if (telegramBusy.value) return;
     const email = user.value.email;
     telegramBusy.value = true;
@@ -60,14 +76,28 @@ async function telegramAction(action: "create" | "refresh" | "unbind") {
             const info = await api.user();
             if (!current()) return;
             portal.user.data = info;
-            if (info.telegram_id) clearBindingLink();
+            if (info.telegram_id) {
+                clearBindingLink();
+                notify(
+                    "Telegram 绑定成功，可以通过机器人查询账户和接收提醒了。",
+                );
+            } else if (feedback) {
+                notify(
+                    "还未完成绑定。请在 Telegram 中点击 Start / 开始，再点击机器人消息里的「确认绑定」。",
+                );
+            }
         } else {
+            const wasBound = Boolean(user.value.telegram_id);
             await api.telegramUnbind();
             if (!current()) return;
             portal.user.data = { ...user.value, telegram_id: null };
             clearBindingLink();
             confirmUnbind.value = false;
-            notify("Telegram 绑定已解除，未使用的绑定链接已失效。");
+            notify(
+                wasBound
+                    ? "Telegram 绑定已解除，未使用的绑定链接已失效。"
+                    : "已取消本次绑定。需要绑定时，重新点击「开始绑定 Telegram」。",
+            );
         }
     } catch (cause) {
         if (current()) telegramError.value = (cause as Error).message;
@@ -150,7 +180,12 @@ async function toggle(key: "remind_expire" | "remind_traffic") {
         </div>
         <div class="settings-row telegram-account-row">
             <div class="telegram-account-details">
-                <h3>Telegram</h3>
+                <div class="telegram-heading">
+                    <h3>Telegram 绑定</h3>
+                    <span :class="user.telegram_id ? 'pill' : 'muted-tag'">{{
+                        user.telegram_id ? "已绑定" : "未绑定"
+                    }}</span>
+                </div>
                 <p v-if="user.telegram_id">
                     已绑定 · 用户 ID：{{ user.telegram_id }}
                 </p>
@@ -158,11 +193,59 @@ async function toggle(key: "remind_expire" | "remind_traffic") {
                     绑定后可查询账户、接收提醒，并在 Telegram 中联系客服。
                 </p>
                 <p v-if="!telegramAvailable">站点暂未开启 Telegram Bot。</p>
-                <p v-if="bindingUrl && !user.telegram_id">
+                <ol
+                    v-if="
+                        telegramAvailable && !user.telegram_id && !confirmUnbind
+                    "
+                    class="telegram-binding-steps"
+                    aria-label="Telegram 绑定步骤"
+                >
+                    <li :class="{ 'is-current': !bindingReady }">
+                        <span class="telegram-step-number">1</span>
+                        <div>
+                            <strong>在这里开始绑定</strong>
+                            <p v-if="bindingReady">
+                                绑定入口已准备好，请继续第 2 步。
+                            </p>
+                            <p v-else>
+                                点击下方「{{
+                                    bindingExpired
+                                        ? "重新开始绑定"
+                                        : "开始绑定 Telegram"
+                                }}」，获取专属绑定入口。
+                            </p>
+                        </div>
+                    </li>
+                    <li :class="{ 'is-current': bindingReady }">
+                        <span class="telegram-step-number">2</span>
+                        <div>
+                            <strong>去 Telegram 确认</strong>
+                            <p>
+                                点击「打开 Telegram
+                                继续绑定」。进入机器人私聊后，如有「Start /
+                                开始」先点它，再点击消息下方的「确认绑定」。
+                            </p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="telegram-step-number">3</span>
+                        <div>
+                            <strong>看到「绑定成功」后回到这里</strong>
+                            <p>
+                                网站会自动检查结果；若仍显示未绑定，点击「我已确认，检查绑定结果」。
+                            </p>
+                        </div>
+                    </li>
+                </ol>
+                <p
+                    v-if="bindingUrl && !user.telegram_id"
+                    class="telegram-binding-notice"
+                    role="status"
+                >
                     {{
                         bindingExpired
-                            ? "绑定链接已过期，请重新生成。"
-                            : "链接 5 分钟内有效。打开 Telegram 后点击确认绑定，请勿转发。"
+                            ? "绑定链接已过期，请点击「重新开始绑定」，再用新的入口打开 Telegram。"
+                            : "绑定入口已准备好，5 分钟内有效。下一步：点击下方按钮，去 Telegram 确认绑定。链接仅供本人使用，请勿转发。"
                     }}
                 </p>
                 <p v-if="confirmUnbind">
@@ -199,46 +282,80 @@ async function toggle(key: "remind_expire" | "remind_traffic") {
                     </button>
                 </template>
                 <template v-else-if="telegramAvailable">
+                    <a
+                        v-if="bindingReady"
+                        class="button button-primary"
+                        :href="bindingUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        referrerpolicy="no-referrer"
+                        >打开 Telegram 继续绑定</a
+                    >
                     <button
-                        class="button button-secondary"
+                        class="button"
+                        :class="
+                            bindingReady ? 'button-ghost' : 'button-primary'
+                        "
                         :disabled="telegramBusy"
                         @click="telegramAction('create')"
                     >
                         {{
                             telegramBusy
                                 ? "处理中…"
-                                : bindingUrl
-                                  ? "重新生成链接"
-                                  : "绑定 Telegram"
+                                : bindingExpired
+                                  ? "重新开始绑定"
+                                  : bindingReady
+                                    ? "重新开始"
+                                    : "开始绑定 Telegram"
                         }}
                     </button>
                     <template v-if="bindingUrl">
-                        <a
-                            v-if="!bindingExpired"
-                            class="button button-primary"
-                            :href="bindingUrl"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            referrerpolicy="no-referrer"
-                            >打开 Telegram</a
-                        >
                         <button
                             class="button button-ghost"
                             :disabled="telegramBusy"
-                            @click="telegramAction('refresh')"
+                            @click="telegramAction('refresh', true)"
                         >
-                            刷新绑定状态
+                            我已确认，检查绑定结果
                         </button>
                         <button
                             class="button button-ghost"
                             :disabled="telegramBusy"
                             @click="telegramAction('unbind')"
                         >
-                            撤销链接
+                            取消本次绑定
                         </button>
                     </template>
                 </template>
             </div>
+            <details
+                v-if="bindingReady && !user.telegram_id && !confirmUnbind"
+                class="telegram-binding-help"
+            >
+                <summary>打不开 Telegram，或者没有收到确认消息？</summary>
+                <p>
+                    请先安装并登录 Telegram。如果进入的是网页，选择「Open in
+                    Telegram / 在 Telegram
+                    中打开」。也可复制下面的链接，在浏览器中打开。
+                </p>
+                <div class="telegram-copy-link">
+                    <input
+                        :value="bindingUrl"
+                        readonly
+                        aria-label="Telegram 专属绑定链接"
+                        @focus="($event.target as HTMLInputElement).select()"
+                    />
+                    <button
+                        class="button button-secondary"
+                        @click="copyBindingLink"
+                    >
+                        复制绑定链接
+                    </button>
+                </div>
+                <p>
+                    进入私聊后，先点击「Start /
+                    开始」，再点击「确认绑定」。如果只看到普通欢迎消息，请回到这里点击「重新开始」，再打开新的绑定入口。
+                </p>
+            </details>
         </div>
         <div class="settings-row">
             <div>

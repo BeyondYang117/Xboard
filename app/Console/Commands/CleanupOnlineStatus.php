@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use App\Services\DeviceStateService;
 
 class CleanupOnlineStatus extends Command
 {
@@ -13,6 +15,11 @@ class CleanupOnlineStatus extends Command
 
     public function handle(): void
     {
+        $expired = DB::table('v2_subscription_session')->whereNull('closed_at')->where('expires_at', '<=', time());
+        $users = (clone $expired)->distinct()->pluck('user_id');
+        $expired->update(['closed_at' => time()]);
+        foreach ($users as $userId) app(DeviceStateService::class)->notifyUpdate($userId);
+        DB::table('v2_subscription_session')->where('expires_at', '<', time() - 30 * 86400)->delete();
         $affected = User::where('online_count', '>', 0)
             ->where(function ($query) {
                 $query->where('last_online_at', '<', now()->subMinutes(10))

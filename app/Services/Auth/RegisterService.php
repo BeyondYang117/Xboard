@@ -23,7 +23,7 @@ class RegisterService
      * @param Request $request 请求对象
      * @return array [是否通过, 错误消息]
      */
-    public function validateRegister(Request $request): array
+    public function validateRegister(Request $request, bool $requireEmailVerification = true): array
     {
         // 检查IP注册限制
         if ((int) admin_setting('register_limit_by_ip_enable', 0)) {
@@ -81,7 +81,7 @@ class RegisterService
         }
 
         // 检查邮箱验证
-        if ((int) admin_setting('email_verify', 0)) {
+        if ($requireEmailVerification && (int) admin_setting('email_verify', 0)) {
             $emailCode = $request->input('email_code');
             if (!is_scalar($emailCode) || !preg_match('/^\d{6}$/', (string) $emailCode)) {
                 return [false, [422, __('Email verification code cannot be empty')]];
@@ -137,10 +137,10 @@ class RegisterService
      * @param Request $request 请求对象
      * @return array [成功状态, 用户对象或错误信息]
      */
-    public function register(Request $request): array
+    public function register(Request $request, bool $requireEmailVerification = true): array
     {
         // 验证注册数据
-        [$valid, $error] = $this->validateRegister($request);
+        [$valid, $error] = $this->validateRegister($request, $requireEmailVerification);
         if (!$valid) {
             return [false, $error];
         }
@@ -173,7 +173,7 @@ class RegisterService
         HookManager::call('user.register.after', $user);
 
         // 清除邮箱验证码
-        if ((int) admin_setting('email_verify', 0)) {
+        if ($requireEmailVerification && (int) admin_setting('email_verify', 0)) {
             Cache::forget(CacheKey::get('EMAIL_VERIFY_CODE', $email));
         }
 

@@ -50,6 +50,14 @@ class ServerFilterTest extends TestCase
         $this->assertCount(0, ServerFilter::apply($this->nodes(), ['rate_min' => '3']));
     }
 
+    public function test_relay_nodes_use_gateway_heartbeat_and_report_real_online_counts(): void
+    {
+        $relay = $this->node(['id' => 4, 'is_external' => true, 'subscription_id' => 1,
+            'subscription' => (object) ['delivery_mode' => 'relay'], 'available_status' => 2, 'online' => 3]);
+        $this->assertSame([4], ServerFilter::apply(collect([$relay]), ['status' => '2', 'online_min' => 1])->pluck('id')->all());
+        $this->assertCount(0, ServerFilter::apply(collect([$relay]), ['status' => 'external']));
+    }
+
     public function test_validation_rejects_bad_filters_and_inverted_ranges(): void
     {
         foreach ([['source' => 'bad'], ['port' => '0'], ['online_min' => '-1'], ['rate_min' => '2', 'rate_max' => '1'], ['online_min' => '10', 'online_max' => '0'], ['unknown' => 'x']] as $filters) {

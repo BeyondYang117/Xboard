@@ -7,15 +7,19 @@ use App\Http\Controllers\V2\Admin\Server\SubscriptionController;
 use App\Models\AdminAuditLog;
 use App\Models\Server;
 use App\Models\ServerGroup;
+use App\Models\ServerSubscription;
 use App\Models\User;
 use App\Protocols\General;
 use App\Protocols\SingBox;
 use App\Services\ServerService;
 use App\Services\Subscription\SubscriptionFetcher;
+use App\Services\Subscription\SubscriptionGateway;
+use App\Services\DeviceStateService;
 use App\Support\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -72,7 +76,7 @@ class SubscriptionImportTest extends TestCase
     {
         return $this->postJson(action([SubscriptionController::class, 'import'], [], false), array_replace([
             'preview_token' => $preview['preview_token'], 'node_keys' => array_column($preview['nodes'], 'key'),
-            'group_ids' => [$this->group->id], 'show' => true,
+            'group_ids' => [$this->group->id], 'show' => true, 'delivery_mode' => 'direct',
         ], $overrides));
     }
 
@@ -246,5 +250,267 @@ class SubscriptionImportTest extends TestCase
             'server_port' => 443, 'rate' => 1, 'group_ids' => [(string) $this->group->id], 'show' => true]);
         $this->assertSame($this->admin->uuid, $server->generateServerPassword($this->admin));
         $this->assertSame($server->id, ServerService::getServer($server->id)->id);
+    }
+
+    private function relay(array $overrides = []): array
+    {
+        $this->import($this->preview(), array_replace(['delivery_mode' => 'relay', 'gateway_host' => 'relay.example.com'], $overrides))->assertOk();
+        $devices = Mockery::mock(DeviceStateService::class);
+        $devices->shouldReceive('getUsersDevices')->andReturn([]);
+        $this->app->instance(DeviceStateService::class, $devices);
+        $user = $this->makeUser();
+        $user->group_id = $this->group->id; $user->saveQuietly();
+        return [ServerSubscription::firstOrFail(), Server::firstOrFail(), $user, app(SubscriptionGateway::class)];
+    }
+
+    public function test_source_management_updates_all_nodes_and_deletes_only_its_source(): void
+    {
+        $this->import($this->preview())->assertOk();
+        $source = ServerSubscription::firstOrFail();
+        $other = Server::create(['type' => 'trojan', 'name' => 'Local', 'host' => 'local.example', 'port' => '443', 'server_port' => 443, 'rate' => 1]);
+        $save = action([SubscriptionController::class, 'saveSubscription'], [], false);
+        $this->postJson($save, ['id' => $source->id, 'name' => '我的机场', 'rate' => 2, 'show' => false, 'enabled' => false])->assertOk();
+        $this->assertSame('我的机场', $source->fresh()->name);
+        $this->assertEquals(2, Server::where('subscription_id', $source->id)->value('rate'));
+        $this->assertFalse(Server::where('subscription_id', $source->id)->first()->show);
+        $this->getJson(action([SubscriptionController::class, 'subscriptions'], [], false))->assertOk()
+            ->assertJsonPath('data.0.nodes_count', 2)->assertJsonPath('data.0.enabled', false)->assertJsonMissingPath('data.0.source');
+        $this->postJson(action([SubscriptionController::class, 'deleteSubscription'], [], false), ['id' => $source->id])->assertOk()->assertJsonPath('data.deleted', 2);
+        $this->assertDatabaseCount('v2_server_subscription', 0);
+        $this->assertDatabaseCount('v2_server', 1); $this->assertNotNull($other->fresh());
+    }
+
+    public function test_relay_exports_personal_credentials_and_requires_live_gateway(): void
+    {
+        [$source, $node, $user] = $this->relay(['rate' => 2]);
+        $this->assertSame([], ServerService::getAvailableServers($user));
+        Cache::put('subscription-gateway:' . $source->id, true, 30);
+        $nodes = ServerService::getAvailableServers($user);
+        $this->assertCount(2, $nodes);
+        $this->assertSame('http', $nodes[0]['type']);
+        $this->assertSame('relay.example.com', $nodes[0]['host']);
+        $this->assertSame($user->uuid . '.' . $node->id, $nodes[0]['password']);
+        $this->assertSame(1, $nodes[0]['protocol_settings']['tls']);
+        $this->assertStringNotContainsString('upstream-secret', json_encode($nodes));
+        $this->assertStringNotContainsString('node.example', json_encode($nodes));
+        $this->assertEquals(2, $node->rate);
+        $source->update(['enabled' => false]);
+        $this->assertSame([], ServerService::getAvailableServers($user));
+    }
+
+    public function test_provider_ip_limit_is_shared_across_nodes_and_released_after_close(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['max_online' => 1]);
+        $second = Server::where('id', '!=', $node->id)->firstOrFail();
+        $first = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $same = $gateway->open($source->id, $second->id, $user->uuid, '203.0.113.1');
+        $this->assertSame(['online_users' => 1, 'online_ips' => 1, 'online_connections' => 2], $gateway->online($source->id));
+        try { $gateway->open($source->id, $second->id, $user->uuid, '203.0.113.2'); $this->fail('Should reject provider overflow'); }
+        catch (\DomainException $e) { $this->assertSame('机场在线名额已满', $e->getMessage()); }
+        $gateway->record($first, 0, 0, true); $gateway->record($same, 0, 0, true);
+        $this->assertSame(0, $user->fresh()->online_count);
+        $gateway->open($source->id, $second->id, $user->uuid, '203.0.113.2');
+        $this->assertSame(1, $user->fresh()->online_count);
+    }
+
+    public function test_relay_billing_is_idempotent_and_updates_user_node_provider_and_daily_stats(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['rate' => 2]);
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $this->assertTrue($gateway->record($id, 100, 200));
+        $this->assertTrue($gateway->record($id, 100, 200));
+        $this->assertFalse($gateway->record($id, 150, 250, true));
+        $this->assertFalse($gateway->record($id, 150, 250, true));
+        $this->assertSame(300, $user->fresh()->u); $this->assertSame(500, $user->fresh()->d);
+        $this->assertSame(150, $node->fresh()->u); $this->assertSame(250, $node->fresh()->d);
+        $this->assertSame(150, $source->fresh()->u); $this->assertSame(250, $source->fresh()->d);
+        $this->assertDatabaseHas('v2_stat_user', ['user_id' => $user->id, 'u' => 300, 'd' => 500, 'server_rate' => 2]);
+        $this->assertDatabaseHas('v2_stat_server', ['server_id' => $node->id, 'u' => 150, 'd' => 250]);
+        $this->assertSame(0, $gateway->online($source->id)['online_connections']);
+    }
+
+    public function test_exhausted_quota_closes_session_and_prevents_new_admission(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['transfer_enable' => 300]);
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $this->assertFalse($gateway->record($id, 100, 200));
+        $this->expectException(\DomainException::class);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.2');
+    }
+
+    public function test_fractional_rate_carries_sub_byte_remainders_between_flushes(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['rate' => 0.5]);
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $this->assertTrue($gateway->record($id, 1, 1));
+        $this->assertTrue($gateway->record($id, 2, 2));
+        $this->assertSame(1, $user->fresh()->u); $this->assertSame(1, $user->fresh()->d);
+        $this->assertDatabaseHas('v2_stat_user', ['user_id' => $user->id, 'u' => 1, 'd' => 1, 'server_rate' => 0.5]);
+    }
+
+    public function test_user_quota_is_debited_at_rate_and_stops_existing_and_new_connections(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['rate' => 2]);
+        $user->transfer_enable = 500; $user->saveQuietly();
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $this->assertFalse($gateway->record($id, 100, 200));
+        $this->assertSame(600, $user->fresh()->u + $user->fresh()->d);
+        $this->expectException(\DomainException::class);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+    }
+
+    public function test_device_state_merges_gateway_and_managed_node_ips_without_double_counting(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay();
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        Redis::shouldReceive('hgetall')->with('user_devices:' . $user->id)->andReturn([
+            '999:203.0.113.1' => time(), '999:203.0.113.2' => time(), '999:203.0.113.3' => time() - 600,
+        ]);
+        $devices = new DeviceStateService();
+        $this->assertSame(2, $devices->getDeviceCount($user->id));
+        $this->assertSame(['203.0.113.1', '203.0.113.2'], $devices->getUsersDevices([$user->id])[$user->id]);
+    }
+
+    public function test_expired_lease_is_not_resurrected_and_final_bytes_are_still_accounted(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['max_online' => 1]);
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        DB::table('v2_subscription_session')->where('id', $id)->update(['expires_at' => time() - 1]);
+        $this->assertSame(0, $gateway->online($source->id)['online_ips']);
+        $this->assertFalse($gateway->record($id, 12, 34));
+        $this->assertSame(46, $source->fresh()->u + $source->fresh()->d);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.2');
+    }
+
+    public function test_gateway_rejects_banned_users_wrong_groups_and_personal_device_overflow(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay();
+        $user->device_limit = 1; $user->saveQuietly();
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        try { $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.2'); $this->fail('Should enforce personal device limit'); }
+        catch (\DomainException $e) { $this->assertSame('账号在线设备已达到上限', $e->getMessage()); }
+        $user->banned = true; $user->saveQuietly();
+        $this->assertFalse($gateway->record($id, 1, 2));
+        $user->banned = false; $user->group_id = 999; $user->saveQuietly();
+        $this->expectException(\DomainException::class);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+    }
+
+    public function test_direct_mode_cannot_claim_online_or_quota_enforcement(): void
+    {
+        $preview = $this->preview();
+        $this->import($preview, ['max_online' => 2])->assertUnprocessable();
+        $this->import($preview, ['transfer_enable' => 1024])->assertUnprocessable();
+        $this->assertDatabaseCount('v2_server_subscription', 0);
+        $this->assertDatabaseCount('v2_server', 0);
+    }
+
+    public function test_connection_mode_blocks_same_user_and_ip_at_capacity(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['max_online' => 1, 'online_limit_mode' => 'connection']);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $this->expectException(\DomainException::class);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+    }
+
+    public function test_user_mode_shares_a_slot_across_ips_but_blocks_other_users(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['max_online' => 1, 'online_limit_mode' => 'user']);
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.2');
+        $other = $this->makeUser(); $other->group_id = $this->group->id; $other->saveQuietly();
+        $this->expectException(\DomainException::class);
+        $gateway->open($source->id, $node->id, $other->uuid, '203.0.113.1');
+    }
+
+    public function test_lowered_online_limit_applies_to_existing_sessions(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['max_online' => 2, 'online_limit_mode' => 'connection']);
+        $one = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $two = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $source->update(['max_online' => 1]);
+        $ids = [$one, $two]; sort($ids);
+        $this->assertFalse($gateway->record($ids[1], 0, 0));
+        $this->assertTrue($gateway->record($ids[0], 0, 0));
+        $this->assertSame(1, $gateway->online($source->id)['online_connections']);
+    }
+
+    public function test_delete_disconnects_sessions_and_retains_final_accounting(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay();
+        $id = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $this->postJson(action([SubscriptionController::class, 'deleteSubscription'], [], false), ['id' => $source->id])->assertOk();
+        $this->assertFalse($gateway->record($id, 10, 20));
+        $this->assertSame(30, $user->fresh()->u + $user->fresh()->d);
+        $this->assertDatabaseHas('v2_stat_server', ['server_id' => $node->id, 'u' => 10, 'd' => 20]);
+    }
+
+    public function test_source_settings_are_admin_only(): void
+    {
+        $this->import($this->preview())->assertOk();
+        $id = ServerSubscription::firstOrFail()->id;
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', 'Bearer ' . $this->makeUser()->createToken('user')->plainTextToken);
+        $this->getJson(action([SubscriptionController::class, 'subscriptions'], [], false))->assertForbidden();
+        $this->getJson(action([SubscriptionController::class, 'gatewayConfig'], [], false))->assertForbidden();
+        $this->postJson(action([SubscriptionController::class, 'saveSubscription'], [], false), ['id' => $id])->assertForbidden();
+        $this->postJson(action([SubscriptionController::class, 'deleteSubscription'], [], false), ['id' => $id])->assertForbidden();
+    }
+
+    public function test_global_gateway_is_used_automatically_for_imports_and_existing_relay_exports(): void
+    {
+        [$source, $node, $user] = $this->relay();
+        config()->set('subscription_gateway.host', 'shared.example.com');
+        config()->set('subscription_gateway.port', 3443);
+        Cache::put('subscription-gateway:' . $source->id, true, 30);
+        $nodes = ServerService::getAvailableServers($user);
+        $this->assertSame('shared.example.com', $nodes[0]['host']);
+        $this->assertSame(3443, $nodes[0]['port']);
+        $this->assertSame('shared.example.com', $nodes[0]['protocol_settings']['tls_settings']['server_name']);
+        $this->assertSame('relay.example.com', $source->fresh()->gateway_host);
+        $this->getJson(action([SubscriptionController::class, 'gatewayConfig'], [], false))->assertOk()
+            ->assertJsonPath('data.host', 'shared.example.com')->assertJsonPath('data.port', 3443)->assertJsonPath('data.online', false);
+        $this->import($this->preview(), ['delivery_mode' => 'relay'])->assertOk();
+        $this->assertSame('shared.example.com', $source->fresh()->gateway_host);
+        $this->assertSame(3443, $source->fresh()->gateway_port);
+    }
+
+    public function test_airports_can_share_endpoint_without_sharing_billing_or_online_limits(): void
+    {
+        [$source, $node, $user, $gateway] = $this->relay(['max_online' => 1, 'rate' => 2]);
+        $other = ServerSubscription::create(['source' => str_repeat('b', 64), 'name' => 'Second airport',
+            'group_ids' => [(string) $this->group->id], 'enabled' => true, 'delivery_mode' => 'relay',
+            'max_online' => 1, 'online_limit_mode' => 'ip', 'gateway_host' => 'relay.example.com', 'gateway_port' => 2443]);
+        $second = $node->replicate(); $second->subscription_id = $other->id; $second->external_key = str_repeat('c', 64);
+        $second->rate = 3; $second->save();
+        $this->postJson(action([SubscriptionController::class, 'saveSubscription'], [], false),
+            ['id' => $other->id, 'gateway_host' => 'relay.example.com', 'gateway_port' => 2443])->assertOk();
+        $one = $gateway->open($source->id, $node->id, $user->uuid, '203.0.113.1');
+        $two = $gateway->open($other->id, $second->id, $user->uuid, '203.0.113.2');
+        $this->assertTrue($gateway->record($one, 10, 20));
+        $this->assertTrue($gateway->record($two, 100, 200));
+        $this->assertSame(30, $source->fresh()->u + $source->fresh()->d);
+        $this->assertSame(300, $other->fresh()->u + $other->fresh()->d);
+        $this->assertSame(960, $user->fresh()->u + $user->fresh()->d);
+        $this->assertSame(1, $gateway->online($source->id)['online_ips']);
+        $this->assertSame(1, $gateway->online($other->id)['online_ips']);
+        $this->expectException(\DomainException::class);
+        $gateway->open($source->id, $second->id, $user->uuid, '203.0.113.1');
+    }
+
+    public function test_upgrade_groups_existing_nodes_without_losing_groups_or_credentials(): void
+    {
+        $this->import($this->preview())->assertOk();
+        $nodes = Server::orderBy('id')->get();
+        $group = new ServerGroup(); $group->name = 'Other'; $group->save();
+        $nodes[1]->update(['group_ids' => [(string) $group->id]]);
+        $migration = require database_path('migrations/2026_10_28_000003_add_subscription_management.php');
+        $migration->down(); $migration->up();
+        $source = ServerSubscription::firstOrFail();
+        $this->assertSame('direct', $source->delivery_mode);
+        $this->assertSame([(string) $this->group->id, (string) $group->id], $source->group_ids);
+        $this->assertSame(2, $source->nodes()->count());
+        $this->assertSame('upstream-secret', $nodes[0]->fresh()->external_password);
+        $this->assertSame([(string) $group->id], $nodes[1]->fresh()->group_ids);
     }
 }

@@ -167,7 +167,18 @@ test("the real login page offers Linux DO only when enabled, binds existing acco
         ].find((b) => b.textContent!.includes("创建新账户"))!;
         register.click();
         await nextTick();
-        assert.ok(document.querySelector("#auth-code"));
+        assert.equal(document.querySelector("#auth-code"), null);
+        const emailField =
+            document.querySelector<HTMLInputElement>("#auth-email")!;
+        assert.equal(emailField.required, true);
+        emailField.value = "";
+        assert.equal(emailField.checkValidity(), false);
+        emailField.value = "invalid-email";
+        assert.equal(emailField.checkValidity(), false);
+        assert.match(
+            document.querySelector(".linuxdo-pending")!.textContent!,
+            /邮箱必填，无需邮箱验证码/,
+        );
         assert.equal(
             document.querySelector<HTMLInputElement>("#invite-code")!.required,
             true,
@@ -187,6 +198,56 @@ test("the real login page offers Linux DO only when enabled, binds existing acco
         await nextTick();
         assert.equal(linuxDoPending.value, null);
         assert.ok(document.querySelector(".linuxdo-login"));
+        register.click();
+        await nextTick();
+        assert.ok(document.querySelector("#auth-code"));
+
+        linuxDoPending.value = {
+            ticket: "R".repeat(64),
+            verifier: "b".repeat(64),
+            username: "traveler",
+        };
+        await nextTick();
+        assert.equal(document.querySelector("#auth-code"), null);
+        const clickLink = async (label: string) => {
+            [
+                ...document.querySelectorAll<HTMLButtonElement>(
+                    ".auth-links button",
+                ),
+            ]
+                .find((b) => b.textContent!.includes(label))!
+                .click();
+            await nextTick();
+        };
+        await clickLink("返回登录");
+        await clickLink("忘记密码");
+        assert.ok(document.querySelector("#auth-code"));
+        await clickLink("返回登录");
+        await clickLink("创建新账户");
+        await input("#auth-email", "new@example.test");
+        await input("#auth-password", "new-password");
+        await input("#invite-code", "invite-test");
+        document.querySelector<HTMLInputElement>(".tos-row input")!.click();
+        await nextTick();
+        document
+            .querySelector("form")!
+            .dispatchEvent(
+                new dom.window.Event("submit", {
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+        await settle();
+        assert.deepEqual(completeBody, {
+            email: "new@example.test",
+            password: "new-password",
+            invite_code: "invite-test",
+            action: "register",
+            ticket: "R".repeat(64),
+            verifier: "b".repeat(64),
+        });
+        assert.equal(authToken.value, "Bearer bound-user");
+        assert.equal(linuxDoPending.value, null);
         app.unmount();
         app = undefined;
         enabled = false;

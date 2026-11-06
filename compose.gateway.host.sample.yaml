@@ -1,0 +1,21 @@
+# Save as compose.gateway.yaml beside the existing production .env.
+# Configure SUBSCRIPTION_GATEWAY_HOST and SUBSCRIPTION_GATEWAY_PORT in that .env.
+# Put the matching certificate chain and private key in ./certs/relay/ as real
+# files named fullchain.pem and privkey.pem (not symlinks outside this directory).
+# This extra service uses the host's MySQL/Redis, as in a host-network deployment.
+services:
+  airport-gateway:
+    image: ghcr.io/beyondyang117/xboard:latest
+    restart: unless-stopped
+    init: true
+    network_mode: host
+    working_dir: /www
+    # Start the shared gateway directly; web/horizon/ws already run separately.
+    entrypoint: ["php", "/www/artisan"]
+    command: ["subscription:gateway"]
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    volumes:
+      - ./.env:/www/.env:ro
+      - ./certs/relay:/certs:ro
+      - ./storage/subscription-gateway:/www/storage/subscription-gateway

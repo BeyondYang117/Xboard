@@ -143,8 +143,9 @@ class LinuxDoService
                     if (User::where('linuxdo_id', $profile['id'])->exists()) {
                         throw new ApiException('该 Linux DO 账户已绑定，请重新使用 Linux DO 登录。', 409);
                     }
+                    // Only a verified Linux DO identity may register without an email code.
                     [$success, $user] = $action === 'register'
-                        ? app(RegisterService::class)->register($request)
+                        ? app(RegisterService::class)->register($request, requireEmailVerification: false)
                         : app(LoginService::class)->login($request->string('email')->toString(), $request->string('password')->toString());
                     if (!$success) {
                         throw new ApiException($user[1], $user[0]);

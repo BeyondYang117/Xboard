@@ -120,11 +120,15 @@ test("the account page shows bound identities safely and distinguishes unbound a
         };
         api.user = async () => ({ ...user, telegram_id: 123456789 });
         await nextTick();
-        await click("绑定 Telegram");
+        assert.match(tgRow().textContent!, /Start \/ 开始/);
+        assert.match(tgRow().textContent!, /确认绑定/);
+        await click("开始绑定 Telegram");
         const link = tgRow().querySelector("a")!;
         assert.match(link.href, /^https:\/\/t.me\/test_bot\?start=bind_/);
         assert.equal(link.rel, "noopener noreferrer");
         assert.match(tgRow().textContent!, /5 分钟内有效/);
+        assert.equal(link.textContent?.trim(), "打开 Telegram 继续绑定");
+        assert.ok(tgRow().querySelector("details input[readonly]"));
         window.dispatchEvent(new dom.window.Event("focus"));
         await new Promise((resolve) => setImmediate(resolve));
         await nextTick();
@@ -142,7 +146,7 @@ test("the account page shows bound identities safely and distinguishes unbound a
         api.telegramBindingLink = async () => {
             throw new Error("站点暂未开启 Telegram Bot");
         };
-        await click("绑定 Telegram");
+        await click("开始绑定 Telegram");
         assert.match(
             tgRow().querySelector('[role="alert"]')!.textContent!,
             /暂未开启/,
@@ -151,17 +155,19 @@ test("the account page shows bound identities safely and distinguishes unbound a
             url: "javascript:alert(1)",
             expires_at: 1,
         });
-        await click("绑定 Telegram");
+        await click("开始绑定 Telegram");
         assert.equal(tgRow().querySelector("a"), null);
         assert.match(tgRow().textContent!, /绑定链接格式异常/);
         api.telegramBindingLink = async () => ({
             url: "https://t.me/test_bot?start=bind_" + "b".repeat(40),
             expires_at: Math.floor(Date.now() / 1000) - 1,
         });
-        await click("绑定 Telegram");
+        await click("开始绑定 Telegram");
         assert.match(tgRow().textContent!, /绑定链接已过期/);
         assert.equal(tgRow().querySelector("a"), null);
-        await click("撤销链接");
+        assert.match(tgRow().textContent!, /重新开始绑定/);
+        assert.equal(tgRow().querySelector("details"), null);
+        await click("取消本次绑定");
         assert.equal(unbinds, 2);
         assert.doesNotMatch(tgRow().textContent!, /绑定链接已过期/);
     } finally {

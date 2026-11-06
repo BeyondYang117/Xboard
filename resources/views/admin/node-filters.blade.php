@@ -51,7 +51,7 @@
       <label>名称 / 地址 / 节点 ID<input type="search" name="keyword" maxlength="200" placeholder="例如：新加坡、aws、46"></label>
       <label>显隐<select name="show"><option value="">全部</option><option value="1">显示</option><option value="0">隐藏</option></select></label>
       <label>节点来源<select name="source"><option value="">全部</option><option value="external">订阅导入</option><option value="local">自建节点</option></select></label>
-      <label>心跳状态<select name="status"><option value="">全部</option><option value="2">在线且有推送</option><option value="1">在线未推送</option><option value="0">离线</option><option value="external">外部订阅（无心跳数据）</option></select></label>
+      <label>心跳状态<select name="status"><option value="">全部</option><option value="2">在线且有推送</option><option value="1">在线未推送</option><option value="0">离线</option><option value="external">外部直连（无心跳数据）</option></select></label>
       <label>部署方式<select name="deployment"><option value="">全部</option><option value="standalone">独立部署</option><option value="managed">机器托管 · 已启用</option><option value="disabled">机器托管 · 已停用</option></select></label>
       <label>标签包含<input type="search" name="tag" maxlength="100" placeholder="例如：专线"></label>
       <label>连接端口<input type="number" name="port" min="1" max="65535" placeholder="如 443"></label>
@@ -63,7 +63,7 @@
     </details>
     <div class="nf-actions"><button type="submit">应用筛选</button><button type="button" data-reset>清空高级筛选</button><button type="button" data-probe disabled title="按高级筛选结果测试，最多 200 个节点">测试连通性</button><button type="button" data-classify disabled>批量分类高级筛选结果</button><span role="status" aria-live="polite"></span></div>
     <div class="nf-fields"><label>常用视图<select data-views><option value="">选择已保存的视图</option></select></label><label>视图名称<input data-view-name maxlength="40" placeholder="例如：日本低倍率 VLESS"></label><button type="button" data-save-view>保存当前条件</button><button type="button" data-delete-view>删除所选视图</button></div>
-    <p class="nf-hint">应用后刷新列表，条件在当前标签页保留。可继续使用上方类型、服务器、权限组缩小范围。地区从名称/国旗推测，可批量手动修正；管理分组不影响权限组。外部订阅无心跳数据。批量分类以本面板高级条件为范围，请在弹窗勾选确认。常用视图保存在当前浏览器。</p>
+    <p class="nf-hint">应用后刷新列表，条件在当前标签页保留。可继续使用上方类型、服务器、权限组缩小范围。地区从名称/国旗推测，可批量手动修正；管理分组不影响权限组。外部直连无心跳数据，中转节点显示中转服务心跳。批量分类以本面板高级条件为范围，请在弹窗勾选确认。常用视图保存在当前浏览器。</p>
   </form>
 </template>
 

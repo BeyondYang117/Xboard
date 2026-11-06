@@ -30,7 +30,9 @@ let timer: ReturnType<typeof setInterval>;
 const needsCode = computed(
     () =>
         mode.value === "forget" ||
-        (mode.value === "register" && config.value?.is_email_verify),
+        (mode.value === "register" &&
+            !linuxDoPending.value &&
+            config.value?.is_email_verify),
 );
 const tosUrl = computed(() => httpUrl(config.value?.tos_url));
 const cover = computed(() => httpUrl(portalConfig.coverImage));
@@ -111,7 +113,9 @@ async function submit() {
             password: password.value,
             ...(mode.value === "register"
                 ? {
-                      email_code: emailCode.value,
+                      ...(needsCode.value
+                          ? { email_code: emailCode.value }
+                          : {}),
                       invite_code: inviteCode.value,
                       ...(config.value?.is_captcha
                           ? await captcha.value!.getPayload()
@@ -218,7 +222,7 @@ onBeforeUnmount(() => clearInterval(timer));
                         <p>
                             {{
                                 mode === "register"
-                                    ? "填写邮箱并创建本站账户，完成后即可使用 Linux DO 登录。"
+                                    ? "邮箱必填，无需邮箱验证码。设置密码并创建本站账户后，即可使用 Linux DO 登录。"
                                     : "使用本站邮箱和密码绑定已有账户；还没有账户可选择创建新账户。"
                             }}
                         </p>

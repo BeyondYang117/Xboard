@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\DB;
 
 class DeviceStateService
 {
@@ -122,7 +123,9 @@ class DeviceStateService
             }
         }
 
-        return count(array_unique($ips));
+        $gatewayIps = DB::table('v2_subscription_session')->where('user_id', $userId)
+            ->whereNull('closed_at')->where('expires_at', '>', time())->pluck('ip')->all();
+        return count(array_unique(array_merge($ips, $gatewayIps)));
     }
 
     /**
@@ -166,6 +169,12 @@ class DeviceStateService
                 }
             }
         }
+
+        foreach (DB::table('v2_subscription_session')->whereIn('user_id', $userIds)
+            ->whereNull('closed_at')->where('expires_at', '>', $now)->get(['user_id', 'ip']) as $session) {
+            $result[$session->user_id][] = $session->ip;
+        }
+        foreach ($result as &$ips) $ips = array_values(array_unique($ips));
 
         return $result;
     }

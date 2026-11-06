@@ -21,7 +21,7 @@ class ServerService
      */
     public static function getAllServers(): Collection
     {
-        $query = Server::orderBy('sort', 'ASC');
+        $query = Server::with('subscription')->orderBy('sort', 'ASC');
 
         return $query->get()->append([
             'is_external',
@@ -57,6 +57,7 @@ class ServerService
     public static function getAvailableServers(User $user): array
     {
         $servers = Server::whereJsonContains('group_ids', (string) $user->group_id)
+            ->with('subscription')
             ->where('show', true)
             ->where(function ($query) {
                 $query->whereNull('transfer_enable')
@@ -67,7 +68,26 @@ class ServerService
             ->get()
             ->append(['is_external', 'last_check_at', 'last_push_at', 'online', 'is_online', 'available_status', 'cache_key', 'server_key']);
 
-        $servers = collect($servers)->map(function ($server) use ($user) {
+        $servers = collect($servers)->filter(function ($server) use ($user) {
+            if (!$server->is_external || !$server->subscription_id) return true;
+            $subscription = $server->subscription;
+            return $subscription && $subscription->isAvailable()
+                && in_array((string) $user->group_id, $subscription->group_ids ?? [], true)
+                && ($subscription->delivery_mode === 'direct' || ($subscription->gatewayEndpoint()['host']
+                    && Cache::get('subscription-gateway:' . $subscription->id)));
+        })->map(function ($server) use ($user) {
+            if ($server->is_external && $server->subscription?->delivery_mode === 'relay') {
+                $subscription = $server->subscription;
+                $endpoint = $subscription->gatewayEndpoint();
+                // Export only personal gateway credentials. Never expose upstream credentials.
+                $server->password = $user->uuid . '.' . $server->id;
+                $server->type = Server::TYPE_HTTP;
+                $server->host = $endpoint['host'];
+                $server->port = $endpoint['port'];
+                $server->protocol_settings = ['tls' => 1, 'tls_settings' => ['server_name' => $endpoint['host'], 'allow_insecure' => false]];
+                $server->rate = $server->getCurrentRate();
+                return $server;
+            }
             // 判断动态端口
             if (str_contains($server->port, '-')) {
                 $port = $server->port;
@@ -79,7 +99,7 @@ class ServerService
             $server->password = $server->generateServerPassword($user);
             $server->rate = $server->getCurrentRate();
             return $server;
-        })->toArray();
+        })->values()->toArray();
 
         return $servers;
     }

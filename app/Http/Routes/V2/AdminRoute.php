@@ -93,6 +93,10 @@ class AdminRoute
                 $router->post('/probe', [ProbeController::class, 'run'])->middleware('throttle:120,1');
                 $router->post('/previewSubscription', [SubscriptionController::class, 'preview'])->middleware('throttle:10,1');
                 $router->post('/importSubscription', [SubscriptionController::class, 'import']);
+                $router->get('/subscriptions', [SubscriptionController::class, 'subscriptions']);
+                $router->get('/subscriptionGateway', [SubscriptionController::class, 'gatewayConfig']);
+                $router->post('/saveSubscription', [SubscriptionController::class, 'saveSubscription']);
+                $router->post('/deleteSubscription', [SubscriptionController::class, 'deleteSubscription']);
                 $router->post('/update', [ManageController::class, 'update']);
                 $router->post('/save', [ManageController::class, 'save']);
                 $router->post('/drop', [ManageController::class, 'drop']);

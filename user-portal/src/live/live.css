@@ -786,18 +786,84 @@
     flex-wrap: wrap;
 }
 .telegram-account-details {
-    flex: 1 1 240px;
+    flex: 1 1 100%;
     min-width: 0;
 }
+.telegram-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 .settings-row.telegram-account-row p {
-    max-width: 560px;
+    max-width: 680px;
     overflow-wrap: anywhere;
+}
+.telegram-binding-steps {
+    display: grid;
+    gap: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+.telegram-binding-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.telegram-step-number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 28px;
+    height: 28px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    color: var(--muted);
+    font-size: 12px;
+}
+.telegram-binding-steps .is-current .telegram-step-number {
+    background: var(--brand);
+    color: white;
+    border-color: var(--brand);
+}
+.telegram-binding-steps strong {
+    font-size: 13px;
+    font-weight: 500;
+}
+.settings-row.telegram-account-row .telegram-binding-steps p {
+    margin-top: 4px;
+}
+.settings-row.telegram-account-row .telegram-binding-notice {
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
 }
 .telegram-actions {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 8px;
+}
+.telegram-binding-help {
+    width: 100%;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--muted);
+}
+.telegram-binding-help summary {
+    cursor: pointer;
+}
+.telegram-copy-link {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.telegram-copy-link input {
+    flex: 1 1 200px;
+    min-width: 0;
+    width: 100%;
 }
 .auth-divider {
     display: flex;
