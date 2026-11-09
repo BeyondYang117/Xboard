@@ -140,8 +140,11 @@ class LinuxDoService
             // Serialize both linking and registration for this provider identity.
             return Cache::lock($this->key('identity', $profile['id']), 60)->block(5, function () use ($profile, $ticket, $action, $request) {
                 $result = DB::transaction(function () use ($profile, $action, $request) {
-                    if (User::where('linuxdo_id', $profile['id'])->exists()) {
-                        throw new ApiException('该 Linux DO 账户已绑定，请重新使用 Linux DO 登录。', 409);
+                    $boundUser = User::where('linuxdo_id', $profile['id'])->lockForUpdate()->first();
+                    if ($boundUser) {
+                        // Another authorization may have linked this identity since exchange().
+                        // The verified provider identity authenticates its existing account.
+                        return $this->login($boundUser, $profile);
                     }
                     // Only a verified Linux DO identity may register without an email code.
                     [$success, $user] = $action === 'register'

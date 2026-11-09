@@ -178,6 +178,62 @@ class LinuxDoAuthTest extends TestCase
         $this->postJson(self::API . 'complete', $body)->assertStatus(400);
     }
 
+    public function test_bound_identity_can_log_in_again_without_the_previous_session(): void
+    {
+        $user = $this->user(['linuxdo_id' => '123']);
+        $first = $this->postJson(self::API . 'exchange', $this->payload($this->ticket()))->assertOk();
+
+        // A fresh authorization needs no cookies or bearer token from the old session.
+        $second = $this->postJson(self::API . 'exchange', $this->payload($this->ticket()))->assertOk()
+            ->assertJsonMissingPath('data.requires_account');
+
+        $this->assertNotSame($first->json('data.auth_data'), $second->json('data.auth_data'));
+        $this->assertSame($user->id, AuthService::findUserByBearerToken($second->json('data.auth_data'))->id);
+        $this->assertDatabaseCount('v2_user', 1);
+    }
+
+    public function test_pending_completion_logs_into_the_identity_bound_by_another_authorization(): void
+    {
+        foreach (['123' => 'login', '456' => 'register'] as $identity => $action) {
+            // Each scenario represents an independent pair of authorization attempts.
+            Cache::flush();
+            $this->provider(['id' => $identity]);
+            $user = $this->user();
+            $other = $this->user();
+            $ticket = $this->ticket();
+            $this->postJson(self::API . 'exchange', $this->payload($ticket))->assertOk()
+                ->assertJsonPath('data.requires_account', true);
+
+            // Another tab finishes linking while this tab still shows the account form.
+            $this->postJson(self::API . 'complete', $this->payload($this->ticket(), [
+                'action' => 'login', 'email' => $user->email, 'password' => 'test-password',
+            ]))->assertOk();
+            $this->settings['stop_register'] = 1;
+            $body = $this->payload($ticket, [
+                'action' => $action, 'email' => $other->email, 'password' => 'wrong-password',
+            ]);
+            $response = $this->postJson(self::API . 'complete', $body)->assertOk();
+            $this->assertSame($user->id, AuthService::findUserByBearerToken($response->json('data.auth_data'))->id);
+            $this->assertNull($other->fresh()->linuxdo_id);
+            $this->assertSame((string) $identity, $user->fresh()->linuxdo_id);
+            $this->postJson(self::API . 'complete', $body)->assertStatus(400);
+        }
+        $this->assertDatabaseCount('v2_user', 4);
+        $this->assertDatabaseCount('personal_access_tokens', 4);
+    }
+
+    public function test_completion_of_a_bound_identity_still_checks_browser_proof_and_account_ban(): void
+    {
+        $this->user(['linuxdo_id' => '123', 'banned' => true]);
+        $body = $this->payload($this->ticket(), [
+            'action' => 'login', 'email' => 'unused@example.com', 'password' => 'test-password',
+        ]);
+        $this->postJson(self::API . 'complete', array_replace($body, ['verifier' => str_repeat('b', 64)]))
+            ->assertStatus(400);
+        $this->postJson(self::API . 'complete', $body)->assertForbidden();
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
     public function test_registration_skips_email_verification_and_preserves_other_rules_then_creates_one_bound_account(): void
     {
         $ticket = $this->ticket();
