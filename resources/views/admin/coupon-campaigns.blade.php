@@ -136,7 +136,7 @@
       const money = cents => `¥${(Number(cents || 0) / 100).toFixed(2)}`;
       const token = () => {
         for (const storage of [localStorage, sessionStorage]) {
-          for (const key of ['Xboard_access_token', 'access_token']) {
+          for (const key of ['Xboard_access_token', 'VUE_NAIVE_ACCESS_TOKEN', 'access_token']) {
             const raw = storage.getItem(key);
             if (!raw) continue;
             try {
