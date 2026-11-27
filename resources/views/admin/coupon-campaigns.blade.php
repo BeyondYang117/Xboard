@@ -135,10 +135,20 @@
       const dateText = value => value ? new Date(Number(value) * 1000).toLocaleString('zh-CN', { hour12: false }) : '—';
       const money = cents => `¥${(Number(cents || 0) / 100).toFixed(2)}`;
       const token = () => {
-        try {
-          const entry = JSON.parse(localStorage.getItem('Xboard_access_token') || 'null');
-          return entry && typeof entry.value === 'string' ? entry.value : '';
-        } catch { return ''; }
+        for (const storage of [localStorage, sessionStorage]) {
+          for (const key of ['Xboard_access_token', 'access_token']) {
+            const raw = storage.getItem(key);
+            if (!raw) continue;
+            try {
+              const entry = JSON.parse(raw);
+              const value = typeof entry === 'string' ? entry : entry?.value;
+              if (typeof value === 'string' && value) return value;
+            } catch {
+              return raw;
+            }
+          }
+        }
+        return '';
       };
       async function request(path, options = {}) {
         const accessToken = token();
