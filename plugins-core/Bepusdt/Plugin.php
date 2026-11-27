@@ -10,16 +10,16 @@ use Illuminate\Support\Facades\Http;
 class Plugin extends AbstractPlugin implements PaymentInterface
 {
     private const TRADE_TYPES = [
-        'usdt.trc20' => 'USDT (TRON / TRC20)',
-        'usdt.polygon' => 'USDT (Polygon PoS)',
-        'usdt.arbitrum' => 'USDT (Arbitrum One)',
-        'usdt.erc20' => 'USDT (Ethereum / ERC20)',
-        'usdt.bep20' => 'USDT (BNB Smart Chain / BEP20)',
-        'usdt.solana' => 'USDT (Solana)',
-        'usdt.aptos' => 'USDT (Aptos)',
-        'usdt.xlayer' => 'USDT (X-Layer)',
-        'usdt.plasma' => 'USDT (Plasma)',
-        'usdt.ton' => 'USDT (TON)',
+        ['value' => 'usdt.trc20', 'label' => 'USDT (TRON / TRC20)'],
+        ['value' => 'usdt.polygon', 'label' => 'USDT (Polygon PoS)'],
+        ['value' => 'usdt.arbitrum', 'label' => 'USDT (Arbitrum One)'],
+        ['value' => 'usdt.erc20', 'label' => 'USDT (Ethereum / ERC20)'],
+        ['value' => 'usdt.bep20', 'label' => 'USDT (BNB Smart Chain / BEP20)'],
+        ['value' => 'usdt.solana', 'label' => 'USDT (Solana)'],
+        ['value' => 'usdt.aptos', 'label' => 'USDT (Aptos)'],
+        ['value' => 'usdt.xlayer', 'label' => 'USDT (X-Layer)'],
+        ['value' => 'usdt.plasma', 'label' => 'USDT (Plasma)'],
+        ['value' => 'usdt.ton', 'label' => 'USDT (TON)'],
     ];
 
     public function boot(): void
@@ -65,11 +65,11 @@ class Plugin extends AbstractPlugin implements PaymentInterface
                 'type' => 'select',
                 'default' => 'CNY',
                 'select_options' => [
-                    'CNY' => 'CNY - 人民币',
-                    'USD' => 'USD - 美元',
-                    'EUR' => 'EUR - 欧元',
-                    'GBP' => 'GBP - 英镑',
-                    'JPY' => 'JPY - 日元',
+                    ['value' => 'CNY', 'label' => 'CNY - 人民币'],
+                    ['value' => 'USD', 'label' => 'USD - 美元'],
+                    ['value' => 'EUR', 'label' => 'EUR - 欧元'],
+                    ['value' => 'GBP', 'label' => 'GBP - 英镑'],
+                    ['value' => 'JPY', 'label' => 'JPY - 日元'],
                 ],
                 'description' => '应与 BEpusdt 网关中配置的汇率币种一致',
             ],
@@ -84,7 +84,7 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         $fiat = (string) $this->getConfig('fiat', 'CNY');
 
         if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || !in_array(parse_url($baseUrl, PHP_URL_SCHEME), ['http', 'https'], true)
-            || $token === '' || !isset(self::TRADE_TYPES[$tradeType])) {
+            || $token === '' || !in_array($tradeType, array_column(self::TRADE_TYPES, 'value'), true)) {
             throw new ApiException('BEpusdt 配置无效');
         }
 

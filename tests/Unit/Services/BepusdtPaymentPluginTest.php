@@ -15,6 +15,21 @@ class BepusdtPaymentPluginTest extends TestCase
         require_once base_path('plugins-core/Bepusdt/Plugin.php');
     }
 
+    public function test_select_options_use_the_admin_form_value_label_shape(): void
+    {
+        $form = (new Plugin('bepusdt'))->form();
+
+        $this->assertSame('select', $form['trade_type']['type']);
+        $this->assertContains(
+            ['value' => 'usdt.arbitrum', 'label' => 'USDT (Arbitrum One)'],
+            $form['trade_type']['select_options']
+        );
+        $this->assertSame(
+            ['value' => 'CNY', 'label' => 'CNY - 人民币'],
+            $form['fiat']['select_options'][0]
+        );
+    }
+
     public function test_payment_creation_uses_configured_network_and_signed_amount(): void
     {
         Http::fake([
