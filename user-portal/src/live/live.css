@@ -550,6 +550,61 @@
 .order-note {
     margin-top: 16px;
 }
+.coupon-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.coupon-entry .form-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.coupon-entry .button {
+    flex: 0 0 auto;
+    min-height: 38px;
+}
+.coupon-preview {
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--brand);
+    border-radius: 6px;
+    background: var(--tint);
+    margin-top: 14px;
+    padding: 13px 16px;
+}
+.coupon-preview-status,
+.coupon-preview-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.coupon-preview-status {
+    justify-content: flex-start;
+    color: var(--brand);
+    font-size: 12px;
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+.coupon-preview-row {
+    margin-top: 10px;
+    font-size: 14px;
+}
+.coupon-preview-row > span {
+    color: var(--muted);
+}
+@media (max-width: 480px) {
+    .coupon-entry {
+        gap: 6px;
+    }
+    .coupon-entry .button {
+        padding-inline: 10px;
+        font-size: 12px;
+    }
+    .coupon-preview {
+        padding: 12px;
+    }
+}
 .trade-number {
     overflow-wrap: anywhere;
     text-align: right;

@@ -17,6 +17,8 @@ use App\Services\PlanService;
 
 class OrderService
 {
+    protected ?CouponService $couponService = null;
+
     const STR_TO_TIME = [
         Plan::PERIOD_MONTHLY => 1,
         Plan::PERIOD_QUARTERLY => 3,
@@ -107,6 +109,9 @@ class OrderService
 
             if (!$order->save()) {
                 throw new ApiException(__('Failed to create order'));
+            }
+            if ($couponCode) {
+                $orderService->markCouponClaimRedeemed();
             }
 
             HookManager::call('order.create.after', $order);
@@ -467,6 +472,14 @@ class OrderService
             throw new ApiException(__('Coupon failed'));
         }
         $this->order->coupon_id = $couponService->getId();
+        $this->couponService = $couponService;
+    }
+
+    protected function markCouponClaimRedeemed(): void
+    {
+        if (isset($this->couponService)) {
+            $this->couponService->markClaimRedeemed($this->order);
+        }
     }
 
     /**

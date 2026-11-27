@@ -29,6 +29,30 @@ test("authenticated requests use same-origin bearer and preserve zero response v
     };
     assert.equal(await api.orderStatus("DEMO"), 0);
 });
+test("coupon verification sends the selected plan and billing period without creating an order", async () => {
+    setAuthToken("Bearer coupon-test-token");
+    globalThis.fetch = async (input, init) => {
+        assert.equal(input, "/api/v1/user/coupon/check");
+        assert.equal(init?.method, "POST");
+        assert.deepEqual(JSON.parse(String(init?.body)), {
+            code: "SAVE20",
+            plan_id: 12,
+            period: "month_price",
+        });
+        return new Response(
+            JSON.stringify({
+                status: "success",
+                data: { id: 3, code: "SAVE20", type: 2, value: 20 },
+            }),
+        );
+    };
+    assert.deepEqual(await api.checkCoupon("SAVE20", 12, "month_price"), {
+        id: 3,
+        code: "SAVE20",
+        type: 2,
+        value: 20,
+    });
+});
 test("login requests never send an existing bearer token", async () => {
     setAuthToken("Bearer old-test-token");
     globalThis.fetch = async (_input, init) => {

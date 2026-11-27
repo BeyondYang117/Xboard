@@ -9,6 +9,9 @@ use App\Jobs\SendTelegramJob;
 use App\Jobs\SendTelegramReminderJob;
 use App\Jobs\SendTelegramTicketReplyJob;
 use App\Models\Plan;
+use App\Models\CouponCampaign;
+use App\Models\CouponClaim;
+use App\Models\Order;
 use App\Models\Plugin as PluginRecord;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
@@ -16,6 +19,8 @@ use App\Models\User;
 use App\Services\Plugin\HookManager;
 use App\Services\Plugin\PluginManager;
 use App\Services\TelegramBindingService;
+use App\Services\CouponCampaignService;
+use App\Services\CouponService;
 use App\Services\TelegramReminderService;
 use App\Services\TelegramService;
 use App\Services\TelegramTicketService;
@@ -988,5 +993,55 @@ class TelegramBotTest extends TestCase
         ])->assertStatus(400);
         $this->assertDatabaseCount('v2_ticket', 1);
         $this->assertSame(1, DB::transactionLevel());
+    }
+
+    public function test_telegram_coupon_claim_is_idempotent_and_only_the_owner_can_validate_it(): void
+    {
+        $owner = $this->user();
+        $campaign = CouponCampaign::create([
+            'name' => 'TG campaign', 'description' => 'test', 'type' => 1, 'value' => 500,
+            'claim_started_at' => now()->subHour()->timestamp,
+            'claim_ended_at' => now()->addDay()->timestamp,
+            'coupon_valid_days' => 7, 'limit_claim' => 1, 'claimed_count' => 0,
+            'enabled' => true, 'created_at' => time(), 'updated_at' => time(),
+        ]);
+        $service = app(CouponCampaignService::class);
+        $claim = $service->claim($campaign->id, $owner);
+        $again = $service->claim($campaign->id, $owner);
+        $this->assertSame($claim->coupon_id, $again->coupon_id);
+        $this->assertSame(1, CouponClaim::count());
+        $this->assertSame(1, $campaign->fresh()->claimed_count);
+
+        $check = new CouponService($claim->coupon->code);
+        $check->setUserId($owner->id);
+        $check->check();
+
+        $otherUser = $this->user(['telegram_id' => 2002]);
+        $otherCheck = new CouponService($claim->coupon->code);
+        $otherCheck->setUserId($otherUser->id);
+        $this->expectException(ApiException::class);
+        $otherCheck->check();
+    }
+
+    public function test_redeemed_telegram_coupon_cannot_be_validated_again(): void
+    {
+        $owner = $this->user();
+        $campaign = CouponCampaign::create([
+            'name' => 'TG campaign', 'type' => 1, 'value' => 500,
+            'claim_started_at' => now()->subHour()->timestamp,
+            'claim_ended_at' => now()->addDay()->timestamp,
+            'coupon_valid_days' => 7, 'claimed_count' => 0, 'enabled' => true,
+            'created_at' => time(), 'updated_at' => time(),
+        ]);
+        $claim = app(CouponCampaignService::class)->claim($campaign->id, $owner);
+        $couponService = new CouponService($claim->coupon->code);
+        $order = new Order(['user_id' => $owner->id]);
+        $order->id = 123;
+        $couponService->markClaimRedeemed($order);
+
+        $retry = new CouponService($claim->coupon->code);
+        $retry->setUserId($owner->id);
+        $this->expectException(ApiException::class);
+        $retry->check();
     }
 }

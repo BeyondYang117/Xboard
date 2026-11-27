@@ -17,6 +17,7 @@ use App\Http\Controllers\V2\Admin\StatController;
 use App\Http\Controllers\V2\Admin\NoticeController;
 use App\Http\Controllers\V2\Admin\TicketController;
 use App\Http\Controllers\V2\Admin\CouponController;
+use App\Http\Controllers\V2\Admin\CouponCampaignController;
 use App\Http\Controllers\V2\Admin\GiftCardController;
 use App\Http\Controllers\V2\Admin\KnowledgeController;
 use App\Http\Controllers\V2\Admin\PaymentController;
@@ -196,6 +197,15 @@ class AdminRoute
                 $router->post('/drop', [CouponController::class, 'drop']);
                 $router->post('/show', [CouponController::class, 'show']);
                 $router->post('/update', [CouponController::class, 'update']);
+            });
+
+            // Telegram coupon campaigns
+            $router->group(['prefix' => 'coupon-campaign'], function ($router) {
+                $router->get('/options', [CouponCampaignController::class, 'options']);
+                $router->get('/fetch', [CouponCampaignController::class, 'fetch']);
+                $router->post('/save', [CouponCampaignController::class, 'save']);
+                $router->get('/claims', [CouponCampaignController::class, 'claims']);
+                $router->post('/drop', [CouponCampaignController::class, 'drop']);
             });
 
             // Gift Card

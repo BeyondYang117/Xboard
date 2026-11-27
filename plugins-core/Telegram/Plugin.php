@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Plugin\AbstractPlugin;
 use App\Services\Plugin\HookManager;
 use App\Services\TelegramBindingService;
+use App\Services\CouponCampaignService;
 use App\Services\TelegramReminderService;
 use App\Services\TelegramService;
 use App\Services\TelegramTicketService;
@@ -38,6 +39,8 @@ class Plugin extends AbstractPlugin
     '/cancel' => ['description' => '取消当前输入', 'handler' => 'handleCancelCommand'],
     '/unbind' => ['description' => '解绑账号', 'handler' => 'handleUnbindCommand'],
     '/help' => ['description' => '查看帮助', 'handler' => 'handleHelpCommand'],
+    '/coupon' => ['description' => '领取优惠券', 'handler' => 'handleCouponCommand'],
+    '/mycoupons' => ['description' => '我的优惠券', 'handler' => 'handleMyCouponsCommand'],
   ];
 
   public function boot(): void
@@ -144,6 +147,7 @@ class Plugin extends AbstractPlugin
       [['text' => '👤 账户概览', 'callback_data' => 'tg:account'], ['text' => '📊 流量查询', 'callback_data' => 'tg:traffic']],
       [['text' => '🔗 订阅链接', 'callback_data' => 'tg:subscription'], ['text' => '🔔 提醒设置', 'callback_data' => 'tg:reminders']],
       [['text' => '📮 我的工单', 'callback_data' => 'tg:tickets'], ['text' => '✍️ 联系客服', 'callback_data' => 'tg:newticket']],
+      [['text' => '🎟 领取优惠券', 'callback_data' => 'tg:coupon'], ['text' => '🎫 我的优惠券', 'callback_data' => 'tg:mycoupons']],
       [['text' => '🔗 绑定账号', 'callback_data' => 'tg:bind'], ['text' => '📖 帮助', 'callback_data' => 'tg:help']],
       [['text' => '解除绑定', 'callback_data' => 'tg:unbind']],
     ]];
@@ -283,6 +287,7 @@ class Plugin extends AbstractPlugin
       'reminders' => 'handleRemindersCommand', 'bind' => 'handleBindCommand',
       'help' => 'handleHelpCommand', 'unbind' => 'handleUnbindCommand',
       'tickets' => 'handleTicketsCommand', 'newticket' => 'handleNewTicketCommand',
+      'coupon' => 'handleCouponCommand', 'mycoupons' => 'handleMyCouponsCommand',
     ];
     $action = substr($msg->callback_data, 3);
     if (isset($handlers[$action])) {
@@ -303,6 +308,15 @@ class Plugin extends AbstractPlugin
       if ($user = $this->getTicketUser($msg)) {
         $method = ['reply' => 'beginReply', 'close' => 'beginClose', 'close_confirm' => 'close'][$matches[1]];
         app(TelegramTicketService::class)->{$method}($user, (int) $matches[2]);
+      }
+    } elseif (preg_match('/^coupon_claim:(\d{1,10})$/D', $action, $matches)) {
+      if ($user = $this->getBoundUser($msg)) {
+        $claim = app(CouponCampaignService::class)->claim((int) $matches[1], $user);
+        $coupon = $claim->coupon;
+        $discount = $coupon->type === 1
+          ? number_format($coupon->value / 100, 2) . ' 元立减'
+          : '优惠 ' . $coupon->value . '%';
+        $this->sendMessage($msg, "✅ 优惠券领取成功\n{$discount}\n优惠码：{$coupon->code}\n有效期至：" . date('Y-m-d H:i', $claim->expires_at) . "\n\n下单时输入优惠码核验并使用。");
       }
     } elseif ($action === 'unbind_confirm') {
       $this->confirmUnbind($msg);
@@ -343,8 +357,50 @@ class Plugin extends AbstractPlugin
   public function handleHelpCommand(object $msg): void
   {
     if ($this->checkPrivateChat($msg)) {
-      $this->sendMessage($msg, "/menu - 打开菜单\n/account - 账户概览\n/bind [订阅链接] - 绑定账号\n/traffic - 查看流量\n/getlatesturl - 获取订阅链接\n/reminders - 提醒设置\n/tickets - 我的工单\n/newticket - 联系客服\n/cancel - 取消当前输入\n/unbind - 解绑账号\n/help - 查看帮助");
+      $this->sendMessage($msg, "/menu - 打开菜单\n/account - 账户概览\n/bind [订阅链接] - 绑定账号\n/traffic - 查看流量\n/getlatesturl - 获取订阅链接\n/coupon - 领取优惠券\n/mycoupons - 我的优惠券\n/reminders - 提醒设置\n/tickets - 我的工单\n/newticket - 联系客服\n/cancel - 取消当前输入\n/unbind - 解绑账号\n/help - 查看帮助");
     }
+  }
+
+  public function handleCouponCommand(object $msg): void
+  {
+    if (!$this->checkPrivateChat($msg) || !($user = $this->getBoundUser($msg))) {
+      return;
+    }
+    $campaigns = app(CouponCampaignService::class)->availableCampaigns();
+    if ($campaigns->isEmpty()) {
+      $this->sendMessage($msg, '当前没有可领取的优惠券活动。');
+      return;
+    }
+    $rows = [];
+    foreach ($campaigns as $campaign) {
+      $benefit = $campaign->type === 1
+        ? number_format($campaign->value / 100, 2) . ' 元立减'
+        : '优惠 ' . $campaign->value . '%';
+      $rows[] = [['text' => $campaign->name . ' · ' . $benefit, 'callback_data' => 'tg:coupon_claim:' . $campaign->id]];
+    }
+    $this->sendMessage($msg, '可领取的优惠活动：', ['inline_keyboard' => $rows]);
+  }
+
+  public function handleMyCouponsCommand(object $msg): void
+  {
+    if (!$this->checkPrivateChat($msg) || !($user = $this->getBoundUser($msg))) {
+      return;
+    }
+    $claims = app(CouponCampaignService::class)->claimableCoupons($user);
+    if ($claims->isEmpty()) {
+      $this->sendMessage($msg, '您还没有领取过优惠券。发送 /coupon 查看可领取活动。');
+      return;
+    }
+    $lines = ['🎟 我的优惠券'];
+    foreach ($claims as $claim) {
+      $status = $claim->redeemed_at ? '已使用' : (time() > $claim->expires_at ? '已过期' : '未使用');
+      $coupon = $claim->coupon;
+      $benefit = $coupon->type === 1
+        ? number_format($coupon->value / 100, 2) . ' 元立减'
+        : '优惠 ' . $coupon->value . '%';
+      $lines[] = "\n{$claim->campaign->name} · {$benefit}\n优惠码：{$coupon->code}\n状态：{$status}，有效期至 " . date('Y-m-d H:i', $claim->expires_at);
+    }
+    $this->sendMessage($msg, implode("\n", $lines));
   }
 
   public function handleBindCommand(object $msg): void

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CouponGenerate;
 use App\Http\Requests\Admin\CouponSave;
 use App\Models\Coupon;
+use App\Models\CouponClaim;
 use App\Utils\Helper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -108,7 +109,14 @@ class CouponController extends Controller
             }
         } else {
             try {
-                Coupon::find($request->input('id'))->update($params);
+                $existing = Coupon::find($request->input('id'));
+                if (!$existing) {
+                    throw new ApiException(400202, '优惠券不存在');
+                }
+                if (CouponClaim::where('coupon_id', $existing->id)->exists()) {
+                    return $this->fail([409, '专属优惠券由领取活动管理，不能在通用优惠券中修改']);
+                }
+                $existing->update($params);
             } catch (\Exception $e) {
                 \Log::error($e);
                 return $this->fail([500, '保存失败']);
@@ -176,6 +184,9 @@ class CouponController extends Controller
         $coupon = Coupon::find($request->input('id'));
         if (!$coupon) {
             return $this->fail([400202, '优惠券不存在']);
+        }
+        if (CouponClaim::where('coupon_id', $coupon->id)->exists()) {
+            return $this->fail([409, '专属优惠券不能在通用优惠券中删除']);
         }
         if (!$coupon->delete()) {
             return $this->fail([500, '删除失败']);

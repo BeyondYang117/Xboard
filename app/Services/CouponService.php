@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Models\Coupon;
+use App\Models\CouponClaim;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 
@@ -101,6 +102,15 @@ class CouponService
         if (time() > $this->coupon->ended_at) {
             throw new ApiException(__('This coupon has expired'));
         }
+        $claim = CouponClaim::where('coupon_id', $this->coupon->id)->first();
+        if ($claim) {
+            if (!$this->userId || (int) $claim->user_id !== (int) $this->userId) {
+                throw new ApiException('该优惠券不属于当前账号');
+            }
+            if ($claim->redeemed_at) {
+                throw new ApiException('该优惠券已使用');
+            }
+        }
         if ($this->coupon->limit_plan_ids && $this->planId) {
             if (!in_array($this->planId, $this->coupon->limit_plan_ids)) {
                 throw new ApiException(__('The coupon code cannot be used for this subscription'));
@@ -117,6 +127,24 @@ class CouponService
                     'limit_use_with_user' => $this->coupon->limit_use_with_user
                 ]));
             }
+        }
+    }
+
+    public function markClaimRedeemed(Order $order): void
+    {
+        $claims = CouponClaim::where('coupon_id', $this->coupon->id);
+        if (!$claims->exists()) {
+            return;
+        }
+        $updated = $claims
+            ->where('user_id', $order->user_id)
+            ->whereNull('redeemed_at')
+            ->update([
+                'order_id' => $order->id,
+                'redeemed_at' => time(),
+            ]);
+        if ($updated !== 1) {
+            throw new ApiException('优惠券核销失败，请重试');
         }
     }
 }

@@ -86,6 +86,11 @@
   @include('admin.subscription-import')
   @include('admin.node-filters')
   @include('admin.node-probe')
+  <a href="/{{ $secure_path }}/coupon-campaigns" class="campaign-admin-link">TG 优惠活动</a>
+  <style>
+    .campaign-admin-link { position: fixed; z-index: 1000; right: 20px; bottom: 20px; padding: 10px 14px; border-radius: 6px; background: #126b58; color: #fff; font: 600 13px/1.2 system-ui,sans-serif; text-decoration: none; box-shadow: 0 4px 14px #10251f33; }
+    .campaign-admin-link:hover { background: #0f5849; }
+  </style>
   <script defer src="/assets/node-probe.js?v=1"></script>
   <script defer src="/assets/subscription-import.js?v=1"></script>
 </body>

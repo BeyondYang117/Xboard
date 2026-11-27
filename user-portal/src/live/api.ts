@@ -3,6 +3,7 @@ import type {
     Article,
     AuthData,
     CaptchaPayload,
+    Coupon,
     GuestConfig,
     LinuxDoAccountRequired,
     Notice,
@@ -206,6 +207,10 @@ export const api = {
     orders: () => request<Order[]>("/user/order/fetch"),
     order: (trade_no: string) =>
         request<Order>(`/user/order/detail?${query({ trade_no })}`),
+    checkCoupon: (code: string, plan_id: number, period: Period) =>
+        request<Coupon>("/user/coupon/check", {
+            body: { code, plan_id, period },
+        }),
     createOrder: (plan_id: number, period: Period, coupon_code: string) =>
         request<string>("/user/order/save", {
             body: { plan_id, period, coupon_code: coupon_code || undefined },

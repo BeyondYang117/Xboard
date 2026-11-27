@@ -101,6 +101,12 @@ export interface Order {
     handling_amount?: number | null;
     created_at: number;
 }
+export interface Coupon {
+    id: number;
+    code: string;
+    type: number;
+    value: number | string;
+}
 export interface PaymentMethod {
     id: number;
     name: string;

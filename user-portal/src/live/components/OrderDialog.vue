@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
     ArrowRight,
     CheckCheck,
@@ -11,7 +11,13 @@ import QRCode from "qrcode";
 import { api } from "../api";
 import { currencySymbol, portal } from "../store";
 import { formatDate, httpUrl, money, periods, priceFor } from "../format";
-import type { Order, PaymentMethod, Period, Plan } from "../types";
+import type {
+    Coupon as CouponData,
+    Order,
+    PaymentMethod,
+    Period,
+    Plan,
+} from "../types";
 import PortalDialog from "./PortalDialog.vue";
 import ResourceState from "./ResourceState.vue";
 const props = defineProps<{ plan?: Plan; period?: Period; tradeNo?: string }>();
@@ -19,17 +25,38 @@ const emit = defineEmits<{ close: []; changed: [] }>();
 const order = ref<Order | null>(null),
     trade = ref(props.tradeNo || ""),
     coupon = ref(""),
+    verifiedCoupon = ref<CouponData | null>(null),
+    couponError = ref(""),
     error = ref(""),
     paymentError = ref("");
 const loading = ref(Boolean(props.tradeNo)),
     busy = ref(false),
     checking = ref(false),
+    checkingCoupon = ref(false),
     confirmCancel = ref(false);
 const methods = ref<PaymentMethod[]>([]),
     method = ref<number>(),
     qr = ref(""),
     paymentLink = ref("");
 const paid = computed(() => order.value?.status === 3);
+const couponDiscount = computed(() => {
+    if (!verifiedCoupon.value || !props.plan || !props.period) return 0;
+    const price = priceFor(props.plan, props.period) ?? 0;
+    const coupon = verifiedCoupon.value;
+    const discount =
+        coupon.type === 1
+            ? Number(coupon.value)
+            : coupon.type === 2
+              ? Math.round((price * Number(coupon.value)) / 100)
+              : 0;
+    return Math.min(price, Math.max(0, discount));
+});
+const couponPrice = computed(() =>
+    Math.max(
+        0,
+        (priceFor(props.plan!, props.period!) ?? 0) - couponDiscount.value,
+    ),
+);
 const methodInfo = computed(() =>
     methods.value.find((item) => item.id === method.value),
 );
@@ -93,6 +120,13 @@ async function loadOrder() {
 }
 async function createOrder() {
     if (busy.value || !props.plan || !props.period) return;
+    if (
+        coupon.value.trim() &&
+        verifiedCoupon.value?.code !== coupon.value.trim()
+    ) {
+        couponError.value = "请先核验优惠码。";
+        return;
+    }
     busy.value = true;
     error.value = "";
     try {
@@ -109,6 +143,31 @@ async function createOrder() {
         busy.value = false;
     }
 }
+async function verifyCoupon() {
+    if (checkingCoupon.value || busy.value || !props.plan || !props.period)
+        return;
+    const code = coupon.value.trim();
+    if (!code) {
+        couponError.value = "请输入优惠码。";
+        return;
+    }
+    checkingCoupon.value = true;
+    couponError.value = "";
+    verifiedCoupon.value = null;
+    try {
+        const result = await api.checkCoupon(code, props.plan.id, props.period);
+        if (coupon.value.trim() === code) verifiedCoupon.value = result;
+    } catch (cause) {
+        if (coupon.value.trim() === code)
+            couponError.value = (cause as Error).message;
+    } finally {
+        checkingCoupon.value = false;
+    }
+}
+watch(coupon, () => {
+    verifiedCoupon.value = null;
+    couponError.value = "";
+});
 async function checkStatus(manual = true) {
     if (checking.value || !order.value || disposed) return;
     checking.value = true;
@@ -224,29 +283,74 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="checkout-total">
                     <span>套餐标价</span
-                    ><strong>{{
+                    ><strong v-if="verifiedCoupon">{{
+                        money(couponPrice, currencySymbol)
+                    }}</strong>
+                    <strong v-else>{{
                         money(priceFor(plan, period), currencySymbol)
                     }}</strong>
+                    <s v-if="verifiedCoupon" class="checkout-original-price">{{
+                        money(priceFor(plan, period), currencySymbol)
+                    }}</s>
                 </div>
             </div>
-            <label for="coupon-code" class="form-label">优惠码（选填）</label
-            ><input
-                id="coupon-code"
-                v-model="coupon"
-                class="form-input"
-                maxlength="100"
-                placeholder="输入优惠码，创建订单后确认优惠"
-                :disabled="busy" />
+            <label for="coupon-code" class="form-label">优惠码（选填）</label>
+            <div class="coupon-entry">
+                <input
+                    id="coupon-code"
+                    v-model="coupon"
+                    class="form-input"
+                    maxlength="100"
+                    placeholder="输入优惠码"
+                    :disabled="busy"
+                />
+                <button
+                    class="button button-secondary"
+                    type="button"
+                    :disabled="busy || checkingCoupon || !coupon.trim()"
+                    @click="verifyCoupon"
+                >
+                    {{ checkingCoupon ? "正在核验…" : "核验优惠码" }}
+                </button>
+            </div>
+            <p v-if="couponError" class="field-error" role="alert">
+                {{ couponError }}
+            </p>
+            <div
+                v-if="verifiedCoupon"
+                class="coupon-preview"
+                aria-live="polite"
+            >
+                <div class="coupon-preview-status">
+                    <CheckCheck :size="16" /> 优惠码核验成功
+                </div>
+                <div class="coupon-preview-row">
+                    <span>本次优惠</span>
+                    <strong
+                        >-{{ money(couponDiscount, currencySymbol) }}</strong
+                    >
+                </div>
+            </div>
             <p class="dialog-note order-note">
-                创建订单后，系统会计算折扣、套餐折抵和余额抵扣。请在下一步确认实际应付金额；未支付订单可在账单中继续处理。
+                优惠预览按套餐标价计算。创建订单时还会核算会员折扣、套餐折抵和余额；最终应付金额以订单结算页为准。
             </p>
             <p v-if="error" class="field-error" role="alert">{{ error }}</p>
             <button
                 class="button button-brand full-width"
-                :disabled="busy"
+                :disabled="
+                    busy ||
+                    checkingCoupon ||
+                    (Boolean(coupon.trim()) &&
+                        verifiedCoupon?.code !== coupon.trim())
+                "
                 @click="createOrder"
             >
-                {{ busy ? "正在创建订单…" : "创建订单并查看结算"
+                {{
+                    busy
+                        ? "正在创建订单…"
+                        : verifiedCoupon?.code === coupon.trim()
+                          ? `确认并创建订单 · ${money(couponPrice, currencySymbol)}`
+                          : "确认价格并创建订单"
                 }}<ArrowRight :size="16" /></button></template
         ><template v-else-if="order && !loading"
             ><template v-if="paid"
