@@ -6,6 +6,6 @@ Payment plugins implement `App\Contracts\PaymentInterface` and register their me
 
 BEpusdt integration is in `plugins-core/Bepusdt`. It uses BEpusdt's signed JSON create-transaction API and supports selecting an API URL, API token, fiat currency, and supported USDT trade type. Keep gateway credentials in the payment record's protected config; never add real credentials to source control.
 
-Payment plugin `select_options` must be a list of `{value, label}` records. The admin payment form renders those options as an array; associative maps are not compatible.
+Payment plugin `select_options` must be a list of `{value, label}` records. The admin payment form renders those options as an array; associative maps are not compatible. BEpusdt order amounts are sent as JSON numbers and signed using their numeric representation to match BEpusdt's API semantics.
 
 Core plugins are loaded by `App\Services\Plugin\PluginManager`; they are not necessarily discoverable through Composer's normal plugin namespace mapping. Unit tests for a core plugin should explicitly require its `Plugin.php` file when testing it directly.

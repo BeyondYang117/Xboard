@@ -49,7 +49,7 @@ class BepusdtPaymentPluginTest extends TestCase
 
         $result = $plugin->pay([
             'trade_no' => 'ORDER-123',
-            'total_amount' => 1234,
+            'total_amount' => 690,
             'notify_url' => 'https://merchant.example/notify',
             'return_url' => 'https://merchant.example/order/ORDER-123',
         ]);
@@ -67,9 +67,40 @@ class BepusdtPaymentPluginTest extends TestCase
 
             return $request->url() === 'https://ut.abusz.com/api/v1/order/create-transaction'
                 && $data['trade_type'] === 'usdt.polygon'
-                && $data['amount'] === '12.34'
+                && $data['amount'] === 6.9
                 && hash_equals(md5(implode('&', $pairs) . 'secret-token'), $signature);
         });
+    }
+
+    public function test_gateway_error_is_returned_instead_of_a_generic_failure(): void
+    {
+        Http::fake([
+            'https://ut.abusz.com/*' => Http::response([
+                'status_code' => 400,
+                'message' => 'signature verification failed',
+                'data' => null,
+            ], 400),
+        ]);
+
+        $plugin = new Plugin('bepusdt');
+        $plugin->setConfig([
+            'bepusdt_url' => 'https://ut.abusz.com',
+            'bepusdt_token' => 'secret-token',
+            'trade_type' => 'usdt.trc20',
+            'fiat' => 'CNY',
+        ]);
+
+        try {
+            $plugin->pay([
+                'trade_no' => 'ORDER-690',
+                'total_amount' => 690,
+                'notify_url' => 'https://merchant.example/notify',
+                'return_url' => 'https://merchant.example/order/ORDER-690',
+            ]);
+            $this->fail('Expected the failed gateway response to throw.');
+        } catch (\App\Exceptions\ApiException $exception) {
+            $this->assertStringContainsString('signature verification failed', $exception->getMessage());
+        }
     }
 
     public function test_callback_requires_valid_signature_and_success_status(): void

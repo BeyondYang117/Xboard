@@ -6,6 +6,7 @@ use App\Contracts\PaymentInterface;
 use App\Exceptions\ApiException;
 use App\Services\Plugin\AbstractPlugin;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class Plugin extends AbstractPlugin implements PaymentInterface
 {
@@ -92,7 +93,7 @@ class Plugin extends AbstractPlugin implements PaymentInterface
             'order_id' => (string) $order['trade_no'],
             'notify_url' => $order['notify_url'],
             'redirect_url' => $order['return_url'],
-            'amount' => number_format($order['total_amount'] / 100, 2, '.', ''),
+            'amount' => round($order['total_amount'] / 100, 2),
             'trade_type' => $tradeType,
             'fiat' => $fiat,
             'name' => (string) $order['trade_no'],
@@ -114,7 +115,21 @@ class Plugin extends AbstractPlugin implements PaymentInterface
         if (!$response->successful() || !is_array($payload) || ($payload['status_code'] ?? null) != 200
             || !is_string($paymentUrl) || !filter_var($paymentUrl, FILTER_VALIDATE_URL)
             || !in_array(parse_url($paymentUrl, PHP_URL_SCHEME), ['http', 'https'], true)) {
-            throw new ApiException('BEpusdt 创建支付订单失败');
+            $gatewayMessage = is_array($payload) && is_string($payload['message'] ?? null)
+                ? trim(strip_tags($payload['message']))
+                : '';
+            $gatewayMessage = mb_substr($gatewayMessage, 0, 200);
+
+            Log::warning('BEpusdt order creation failed', [
+                'http_status' => $response->status(),
+                'gateway_status' => is_array($payload) ? ($payload['status_code'] ?? null) : null,
+                'request_id' => is_array($payload) && is_string($payload['request_id'] ?? null)
+                    ? $payload['request_id']
+                    : null,
+                'message' => $gatewayMessage,
+            ]);
+
+            throw new ApiException('BEpusdt 创建支付订单失败' . ($gatewayMessage !== '' ? ': ' . $gatewayMessage : ''));
         }
 
         return [
